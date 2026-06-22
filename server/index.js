@@ -12,7 +12,7 @@ import dotenv from "dotenv";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { retrieve, getInventory, loadInventory } from "./rag.js";
 import { buildSystemPrompt } from "./prompt.js";
@@ -104,6 +104,13 @@ if (fs.existsSync(path.join(DIST, "index.html"))) {
   app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(path.join(DIST, "index.html")));
 }
 
-app.listen(PORT, () => {
-  console.log(`[server] http://localhost:${PORT}  · model=${MODEL} · apiKey=${API_KEY ? "set" : "MISSING(데모)"} · auth=${ACCESS_HASH ? "on" : "OFF"} · SKU=${getInventory().meta?.count || 0}`);
-});
+/* 로컬/Node 호스트로 직접 실행할 때만 리슨한다.
+   Vercel 등 서버리스에서는 api/index.js 가 이 app 을 핸들러로 import 하므로 listen 하지 않는다. */
+const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectRun) {
+  app.listen(PORT, () => {
+    console.log(`[server] http://localhost:${PORT}  · model=${MODEL} · apiKey=${API_KEY ? "set" : "MISSING(데모)"} · auth=${ACCESS_HASH ? "on" : "OFF"} · SKU=${getInventory().meta?.count || 0}`);
+  });
+}
+
+export default app;

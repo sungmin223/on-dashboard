@@ -1,0 +1,19 @@
+# Vercel 업로드 제외 목록 (.gitignore 대신 사용됨)
+# ⚠ data/inventory.json 은 의도적으로 제외하지 않음 → 서버리스 함수가 재고를 읽어야 함
+node_modules
+.git
+client/dist
+
+# 비밀 — 절대 업로드 금지 (환경변수는 Vercel 프로젝트 설정에서 주입)
+.env
+.env.local
+.env.*.local
+
+# 원본 엑셀 등 런타임 불필요
+data/source
+
+# 로컬 백업/임시 산출물
+dashboard_backup_*.html
+_tmp*
+*.log
+.netlify
