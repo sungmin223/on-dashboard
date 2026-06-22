@@ -9,6 +9,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,10 +24,23 @@ const ROOT = path.resolve(__dirname, "..");
 const PORT = process.env.PORT || 3001;
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 const API_KEY = process.env.ANTHROPIC_API_KEY || "";
+// 내부 단가/재고 API 보호용 접근 해시. 기본값은 프론트 게이트와 동일(GATE_HASH)이라
+// 별도 설정 없이도 보호되며, .env 의 ACCESS_HASH 로 덮어쓸 수 있다.
+const ACCESS_HASH = (process.env.ACCESS_HASH || "0fde51116efab90707b7f2952cb1d08112ad3bc4d45ee7afeb58a3d1b5739346").trim().toLowerCase();
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
+
+/* 사내 인증 — x-access-token(비밀번호 원문)의 SHA-256 이 ACCESS_HASH 와 일치해야 통과.
+   ACCESS_HASH 가 비어 있으면(명시적 비활성) 인증을 건너뛴다. */
+function requireAccess(req, res, next) {
+  if (!ACCESS_HASH) return next();
+  const token = String(req.get("x-access-token") || "");
+  const hash = crypto.createHash("sha256").update(token).digest("hex");
+  if (token && hash === ACCESS_HASH) return next();
+  return res.status(401).json({ error: "접근 권한이 없습니다. 대시보드 비밀번호로 로그인 후 이용하세요." });
+}
 
 loadInventory();
 const inv = getInventory();
@@ -39,13 +53,13 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, model: MODEL, hasApiKey: Boolean(API_KEY), inventory: m });
 });
 
-/* 재고 데이터 — 사내 전용(프론트 검색/필터/차트). 가격 포함. */
-app.get("/api/inventory", (_req, res) => {
+/* 재고 데이터 — 사내 전용(프론트 검색/필터/차트). 가격 포함 → 인증 필수. */
+app.get("/api/inventory", requireAccess, (_req, res) => {
   res.json(getInventory());
 });
 
-/* AI 어시스턴트 */
-app.post("/api/chat", async (req, res) => {
+/* AI 어시스턴트 — 인증 필수 */
+app.post("/api/chat", requireAccess, async (req, res) => {
   try {
     const messages = Array.isArray(req.body?.messages) ? req.body.messages : null;
     if (!messages || !messages.length) {
@@ -91,5 +105,5 @@ if (fs.existsSync(path.join(DIST, "index.html"))) {
 }
 
 app.listen(PORT, () => {
-  console.log(`[server] http://localhost:${PORT}  · model=${MODEL} · apiKey=${API_KEY ? "set" : "MISSING"} · SKU=${getInventory().meta?.count || 0}`);
+  console.log(`[server] http://localhost:${PORT}  · model=${MODEL} · apiKey=${API_KEY ? "set" : "MISSING(데모)"} · auth=${ACCESS_HASH ? "on" : "OFF"} · SKU=${getInventory().meta?.count || 0}`);
 });

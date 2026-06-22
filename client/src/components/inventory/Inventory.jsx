@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { won, num, PRICE_BUCKETS, priceBucket } from "../../lib/format.js";
+import { apiFetch } from "../../lib/api.js";
 
 const PAGE = 50;
 const PIE_COLORS = ["#0071e3", "#34c759", "#ff9500", "#b1304a", "#5e5ce6", "#86868b", "#ff3b30"];
@@ -22,7 +23,7 @@ export default function Inventory() {
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    fetch("/api/inventory")
+    apiFetch("/api/inventory")
       .then((r) => r.json())
       .then((d) => { setItems(d.items || []); setMeta(d.meta || {}); })
       .catch(() => setErr("재고 데이터를 불러오지 못했습니다. `npm run import-data` 후 서버를 확인하세요."));

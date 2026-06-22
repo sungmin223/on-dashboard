@@ -11,7 +11,7 @@ const Q = [
 for (const q of Q) {
   const r = await fetch("http://localhost:3001/api/chat", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-access-token": process.env.TEST_TOKEN || "" },
     body: JSON.stringify({ messages: [{ role: "user", content: q }] }),
   });
   const j = await r.json();

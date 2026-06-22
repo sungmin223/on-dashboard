@@ -13,7 +13,11 @@ export default function Gate({ onUnlock }) {
 
   async function tryOpen() {
     const hex = await sha256hex(pw);
-    if (hex === GATE_HASH) { setErr(""); onUnlock(); }
+    if (hex === GATE_HASH) {
+      // API 서버 인증용 토큰(비밀번호 원문)을 세션에 보관 → x-access-token 헤더로 전송
+      sessionStorage.setItem("on_token", pw);
+      setErr(""); onUnlock();
+    }
     else { setErr("비밀번호가 올바르지 않습니다."); }
   }
   const onKey = (e) => { if (e.key === "Enter") tryOpen(); };

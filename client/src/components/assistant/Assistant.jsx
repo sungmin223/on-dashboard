@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { apiFetch } from "../../lib/api.js";
 
 const SUGGESTIONS = [
   "FRBX006 재고와 가격 알려줘",
@@ -34,7 +35,7 @@ export default function Assistant({ onClose }) {
     setInput("");
     setLoading(true);
     try {
-      const res = await fetch("/api/chat", {
+      const res = await apiFetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: convo }),
