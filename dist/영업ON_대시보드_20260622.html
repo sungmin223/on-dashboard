@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>영업ON본부 AI 업무혁신 통합 대시보드</title>
+<style>
+  /* =========================================================
+     영업ON본부 AI 업무혁신 통합 대시보드 — UI 골격 (Design Skeleton)
+     ---------------------------------------------------------
+     기준 문서: dashboard_spec.md / data_schema.md /
+                validation_rules.md / empty_data_template
+     ⚠ 현재 단계: 디자인 기반 UI 골격 + 기준 문서 정합화
+     - 실제 데이터/계산식/API 연동 미포함 (빈 상태 운영 구조)
+     - 모든 표 컬럼명은 data_schema.md(=CSV 헤더)와 1:1 일치
+     - 빈 값은 표준 5종 문구로만 표시(가짜데이터 생성 금지)
+     ========================================================= */
+
+  :root {
+    --bg:            #0f1115;
+    --surface:       #171a21;
+    --surface-2:     #1d212b;
+    --surface-3:     #232834;
+    --border:        #2b313d;
+    --border-soft:   #232834;
+
+    --text:          #e8eaf0;
+    --text-2:        #aeb4c2;
+    --text-3:        #757d8f;
+
+    --accent:        #5b8cff;
+    --accent-soft:   rgba(91,140,255,0.12);
+    --wine:          #b13a52;
+    --wine-soft:     rgba(177,58,82,0.14);
+
+    --ok:            #36b37e;
+    --warn:          #e2b93b;
+    --danger:        #e25c5c;
+    --neutral:       #6b7280;
+
+    --radius:        14px;
+    --radius-sm:     9px;
+    --shadow:        0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.25);
+    --font:          "Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { max-width: 1320px; margin: 0 auto; padding: 28px 28px 64px; }
+
+  /* ---------- Header ---------- */
+  .topbar {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 20px; flex-wrap: wrap; margin-bottom: 18px;
+  }
+  .brand { display: flex; gap: 14px; align-items: center; }
+  .brand-mark {
+    width: 46px; height: 46px; border-radius: 12px; flex: none;
+    background: linear-gradient(135deg, var(--accent), var(--wine));
+    display: grid; place-items: center; font-weight: 800; font-size: 18px; color: #fff;
+    box-shadow: var(--shadow);
+  }
+  .brand h1 { font-size: 21px; margin: 0; letter-spacing: -0.3px; font-weight: 700; }
+  .brand .sub { color: var(--text-2); font-size: 13px; margin-top: 3px; }
+
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  .btn {
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+    padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+    cursor: pointer; display: inline-flex; gap: 7px; align-items: center; font-family: inherit;
+    transition: background .15s, border-color .15s;
+  }
+  .btn:hover { background: var(--surface-3); border-color: #39414f; }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4f7ef0; border-color: #4f7ef0; }
+
+  /* ---------- Trust banner (데이터 신뢰도 배너) ---------- */
+  .trust-banner {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    border: 1px solid rgba(226,92,92,0.35); border-left: 4px solid var(--danger);
+    background: linear-gradient(90deg, rgba(226,92,92,0.10), rgba(226,92,92,0.02));
+    border-radius: var(--radius); padding: 13px 18px; margin-bottom: 12px;
+  }
+  .trust-banner .tb-state { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 14px; }
+  .trust-banner .tb-msg { color: var(--text-2); font-size: 13px; }
+  .trust-banner .tb-spacer { flex: 1 1 auto; }
+  .trust-banner .tb-notice { color: var(--text-3); font-size: 12px; }
+  .trust-banner--partial {
+    border-color: rgba(226,185,59,0.4); border-left-color: var(--warn);
+    background: linear-gradient(90deg, rgba(226,185,59,0.10), rgba(226,185,59,0.02));
+  }
+
+  /* ---------- Status strip ---------- */
+  .statusbar {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 18px; margin-bottom: 22px;
+  }
+  .statusbar .item { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--text-2); }
+  .statusbar .item b { color: var(--text); font-weight: 600; }
+  .statusbar .divider { width: 1px; height: 18px; background: var(--border); }
+
+  /* ---------- Badges ---------- */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    border: 1px solid transparent; white-space: nowrap;
+  }
+  .badge .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .badge-warn    { background: rgba(226,185,59,0.12);  color: #e7c869; border-color: rgba(226,185,59,0.3); }
+  .badge-warn .dot    { background: var(--warn); }
+  .badge-danger  { background: rgba(226,92,92,0.12);   color: #f08a8a; border-color: rgba(226,92,92,0.3); }
+  .badge-danger .dot  { background: var(--danger); }
+  .badge-ok      { background: rgba(54,179,126,0.12);  color: #5fd6a3; border-color: rgba(54,179,126,0.3); }
+  .badge-ok .dot      { background: var(--ok); }
+  .badge-neutral { background: var(--surface-3);       color: var(--text-2); border-color: var(--border); }
+  .badge-neutral .dot { background: var(--neutral); }
+
+  /* ---------- Section ---------- */
+  .section { margin-bottom: 22px; }
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 12px;
+  }
+  .section-head .title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .section-head h2 { font-size: 15px; margin: 0; font-weight: 700; letter-spacing: -0.2px; }
+  .section-head .num {
+    width: 22px; height: 22px; border-radius: 6px; flex: none;
+    background: var(--accent-soft); color: var(--accent);
+    display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  }
+  .section-head .hint { color: var(--text-3); font-size: 12px; }
+  .section-head .sheet {
+    font-size: 11px; color: var(--text-3); font-family: ui-monospace, "Consolas", monospace;
+    background: var(--surface-2); border: 1px solid var(--border); padding: 1px 7px; border-radius: 5px;
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+  }
+  .card-pad { padding: 18px; }
+
+  .grid { display: grid; gap: 14px; }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 1040px) { .grid-4 { grid-template-columns: repeat(2,1fr); } .grid-3 { grid-template-columns: repeat(2,1fr);} }
+  @media (max-width: 680px)  { .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+
+  /* ---------- KPI Card ---------- */
+  .kpi { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-height: 122px; }
+  .kpi .kpi-top { display: flex; align-items: center; justify-content: space-between; }
+  .kpi .kpi-label { color: var(--text-2); font-size: 13px; font-weight: 600; }
+  .kpi .kpi-icon {
+    width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+    background: var(--accent-soft); color: var(--accent); font-size: 15px;
+  }
+  .kpi .kpi-value { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-3); }
+  .kpi .kpi-foot { font-size: 12px; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
+  .kpi .kpi-src { font-family: ui-monospace,"Consolas",monospace; font-size: 10.5px; color: var(--text-3); opacity: .8; }
+
+  /* ---------- Empty State ---------- */
+  .empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 10px; color: var(--text-3);
+    border: 1px dashed var(--border); border-radius: var(--radius-sm);
+    background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.012) 10px, rgba(255,255,255,0.012) 20px);
+    padding: 26px 18px;
+  }
+  .empty.lg { min-height: 220px; }
+  .empty.md { min-height: 150px; }
+  .empty.sm { min-height: 96px; padding: 18px; }
+  .empty .e-icon {
+    width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+    background: var(--surface-3); color: var(--text-2); font-size: 18px; border: 1px solid var(--border);
+  }
+  .empty .e-msg { font-size: 13px; font-weight: 600; color: var(--text-2); }
+  .empty .e-sub { font-size: 12px; color: var(--text-3); max-width: 420px; }
+
+  /* ---------- Tabs ---------- */
+  .tabs { display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 4px; flex-wrap: wrap; }
+  .tab {
+    border: 0; background: transparent; color: var(--text-2); font-family: inherit;
+    padding: 7px 14px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { background: var(--surface-3); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+  /* ---------- Table ---------- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; min-width: max-content; }
+  table.tbl th {
+    text-align: left; color: var(--text-2); font-weight: 600; font-size: 12px;
+    padding: 11px 14px; border-bottom: 1px solid var(--border); white-space: nowrap;
+    background: var(--surface-2);
+  }
+  table.tbl th .req { color: var(--danger); font-size: 10px; margin-left: 2px; vertical-align: top; }
+  table.tbl th .auto { color: var(--text-3); font-size: 10px; font-weight: 500; margin-left: 3px; opacity: .8; }
+  table.tbl td { padding: 13px 14px; border-bottom: 1px solid var(--border-soft); color: var(--text-2); }
+  .tbl-empty-row td { text-align: center; padding: 30px 14px; color: var(--text-3); }
+
+  /* ---------- Two-column ---------- */
+  .split { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; }
+  @media (max-width: 980px) { .split { grid-template-columns: 1fr; } }
+
+  .note { font-size: 12px; color: var(--text-3); margin-top: 10px; line-height: 1.6; }
+  .note b { color: var(--text-2); font-weight: 600; }
+
+  /* ---------- Summary ---------- */
+  .summary-list { display: flex; flex-direction: column; gap: 10px; }
+  .summary-item {
+    display: flex; gap: 12px; align-items: flex-start; padding: 14px;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .summary-item .s-num {
+    width: 24px; height: 24px; flex: none; border-radius: 7px; display: grid; place-items: center;
+    background: var(--wine-soft); color: #d98a9c; font-weight: 700; font-size: 12px;
+  }
+  .summary-item .s-body .s-title { font-weight: 600; color: var(--text); font-size: 13.5px; }
+  .summary-item .s-body .s-val { color: var(--text-3); font-size: 12.5px; margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .summary-item .s-body .s-src { font-family: ui-monospace,"Consolas",monospace; font-size: 10.5px; color: var(--text-3); opacity: .8; }
+
+  /* ---------- Connection ---------- */
+  .conn-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 14px 4px; border-bottom: 1px solid var(--border-soft);
+  }
+  .conn-row:last-child { border-bottom: 0; }
+  .conn-row .c-left { display: flex; gap: 12px; align-items: center; }
+  .conn-row .c-ic {
+    width: 34px; height: 34px; border-radius: 9px; flex: none; display: grid; place-items: center;
+    background: var(--surface-3); color: var(--text-2); font-size: 16px; border: 1px solid var(--border);
+  }
+  .conn-row .c-name { font-weight: 600; font-size: 13.5px; display: flex; align-items: center; gap: 8px; }
+  .conn-row .c-sheet { font-family: ui-monospace,"Consolas",monospace; font-size: 11px; color: var(--text-3); }
+  .conn-row .c-desc { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .conn-row .c-right { display: flex; gap: 8px; align-items: center; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+  .legend .lg-item { display: flex; gap: 7px; align-items: center; font-size: 12px; color: var(--text-3); }
+
+  .progress-skeleton { height: 10px; border-radius: 999px; background: var(--surface-3); overflow: hidden; border: 1px solid var(--border); }
+
+  .footnote { color: var(--text-3); font-size: 12px; margin-top: 26px; text-align: center; line-height: 1.7; }
+
+  /* ---------- 인쇄 / PDF 저장 (대표님 보고용) ---------- */
+  @media print {
+    :root {
+      --bg:#ffffff; --surface:#ffffff; --surface-2:#f4f6f9; --surface-3:#eceff4;
+      --border:#cfd5df; --border-soft:#e3e7ee;
+      --text:#161a21; --text-2:#39404e; --text-3:#6b7280; --shadow:none;
+    }
+    body { background:#fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .app { max-width:none; padding:0 4mm; }
+    .no-print { display:none !important; }
+    .card, .statusbar { box-shadow:none !important; }
+    .card-pad { padding:12px 14px; }
+    .section { margin-bottom:14px; }
+    table.tbl { font-size:10.5px; }
+    table.tbl th, table.tbl td { padding:6px 8px; }
+    thead { display: table-header-group; }   /* 페이지 넘김 시 머리글 반복 */
+    tr, .summary-item, .conn-row { break-inside: avoid; }
+    .table-wrap { overflow: visible !important; border-color: var(--border); }
+    h1 { font-size:18px; }
+    @page { size: A4; margin: 12mm; }
+  }
+
+  /* ---------- 접근 잠금 (간단 비밀번호) ---------- */
+  #gate { position: fixed; inset: 0; z-index: 9999; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; padding: 20px; }
+  #gate .gbox { width: 330px; max-width: 92vw; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 16px; padding: 30px 26px;
+    box-shadow: var(--shadow); text-align: center; }
+  #gate .glogo { width: 48px; height: 48px; border-radius: 13px; margin: 0 auto 16px;
+    background: linear-gradient(135deg, var(--accent), var(--wine)); display: grid;
+    place-items: center; color: #fff; font-weight: 800; font-size: 18px; }
+  #gate h2 { font-size: 16px; margin: 0 0 5px; font-weight: 700; }
+  #gate .gsub { color: var(--text-3); font-size: 12.5px; margin: 0 0 18px; }
+  #gate input { width: 100%; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+    font-size: 14px; box-sizing: border-box; outline: none; }
+  #gate input:focus { border-color: var(--accent); }
+  #gate button { width: 100%; margin-top: 11px; padding: 12px; border: 0; border-radius: 10px;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
+    font-family: inherit; }
+  #gate button:hover { background: #4f7ef0; }
+  #gate .gerr { color: var(--danger); font-size: 12px; min-height: 17px; margin-top: 9px; }
+  #gate .gnote { color: var(--text-3); font-size: 11px; margin-top: 14px; line-height: 1.5; }
+  @media print { #gate { display: none !important; } }
+</style>
+</head>
+<body>
+<div id="gate">
+  <div class="gbox">
+    <div class="glogo">ON</div>
+    <h2>영업ON본부 통합 대시보드</h2>
+    <div class="gsub">접근 비밀번호를 입력하세요</div>
+    <input id="gate-pw" type="password" placeholder="비밀번호" autocomplete="off" autofocus />
+    <button id="gate-go" type="button">확인</button>
+    <div class="gerr" id="gate-err"></div>
+    <div class="gnote">영업ON본부 내부 보고용 · 무단 외부 공유 금지</div>
+  </div>
+</div>
+<div class="app" id="app"><!-- JS가 렌더링 --></div>
+
+<script>
+/* =========================================================
+   기준 문서 상수 (data_schema.md / validation_rules.md)
+   ========================================================= */
+
+/* 빈 상태 표준 문구 — validation_rules §2 (E1~E5). 이 외 문구 사용 금지 */
+const EMPTY = {
+  noFile:    "자료 미첨부",            // E1: 원천 자료 자체 없음
+  needData:  "데이터 연결 필요",       // E2: 내부 CSV/Excel/JSON 시트 미연결
+  needApi:   "API 연결 필요",          // E3: 외부 API/시스템 연동 미완
+  noDetail:  "상세 데이터 미첨부",     // E4: 요약은 있으나 드릴다운 원본 없음
+  afterLink: "자료 연결 후 확인 가능", // E5: 클릭 가능한 카드·표 항목에 연결할 상세 자료가 아직 없을 때
+};
+
+/* 문서가 직접 규정한 상태 문구 (dashboard_spec §3 / data_schema S5) */
+const MSG = {
+  targetEmpty: "목표 데이터 미입력",
+  actualNeed:  "실적 데이터 연결 필요",
+  forecastNA:  "예측 불가",
+};
+
+/* 표 컬럼 정의 — empty_data_template CSV 헤더와 문자 단위 1:1 일치
+   (req: 필수 ●, auto: 자동계산 컬럼 표기) */
+const SALES_MONTHLY_COLS = [
+  {k:"기준연월",req:1},{k:"본부명",req:1},{k:"매출액_당월",req:1},
+  {k:"매출액_전년동월"},{k:"증감액_전년대비",auto:1},{k:"증감률_전년대비",auto:1},
+  {k:"매출액_누적",auto:1},{k:"데이터출처ID",req:1},{k:"갱신일",req:1},
+];
+const SALES_DETAIL_COLS = [
+  {k:"매출일자",req:1},{k:"거래처코드",req:1},{k:"거래처명",req:1},{k:"팀코드",req:1},
+  {k:"채널구분",req:1},{k:"카테고리"},{k:"수량"},{k:"단위"},{k:"매출액",req:1},
+  {k:"세금계산서번호"},{k:"데이터출처ID",req:1},{k:"갱신일",req:1},
+];
+const RECEIVABLES_COLS = [
+  {k:"기준일",req:1},{k:"거래처코드",req:1},{k:"거래처명",req:1},{k:"세금계산서번호"},
+  {k:"채권발생일",req:1},{k:"결제예정일"},{k:"채권금액",req:1},{k:"연체일수",auto:1},
+  {k:"연령구간",auto:1},{k:"회수상태"},{k:"데이터출처ID",req:1},{k:"갱신일",req:1},
+];
+const MARKET_COLS = [
+  {k:"기준연월",req:1},{k:"순위",req:1},{k:"업체명",req:1},{k:"자사여부",req:1},
+  {k:"수입액"},{k:"시장점유율"},{k:"전년대비증감률"},{k:"주요브랜드"},{k:"동향코멘트"},
+  {k:"출처기관",req:1},{k:"출처URL_또는_문서",req:1},{k:"데이터출처ID",req:1},{k:"갱신일",req:1},
+];
+const TARGET_COLS = [
+  {k:"기준연월",req:1},{k:"구분",req:1},{k:"팀코드"},{k:"목표매출",req:1},
+  {k:"실적매출_누계",req:1},{k:"달성률",auto:1},{k:"잔여필요매출",auto:1},{k:"잔여영업일",req:1},
+  {k:"일평균필요액",auto:1},{k:"달성예측",auto:1},{k:"기준일",req:1},{k:"데이터출처ID",req:1},{k:"갱신일",req:1},
+];
+
+/* =========================================================
+   S3 receivables — 실제 채권 자료 반영
+   출처 파일: '채권현황 - 20260622.XLS' (영업ON본부 도소매팀) · 기준일 2026-06-22
+   원자료 컬럼: 거래처 · 외상금액 · 외상개월 · 비고  (4개 / 31개 거래처)
+   ⚠ 원자료에 '회수상태'(정상·주의·지연·고위험·회수 진행·거래 정지 검토) 컬럼 없음 → '자료 미첨부'(분류하지 않음)
+   거래처명·금액·외상개월·비고는 모두 원자료 값 그대로(임의 생성·추정 없음). 집계는 아래 코드에서 자동 산출.
+   ========================================================= */
+const RECEIVABLES_SRC = "채권현황 - 20260622.XLS";
+const RECEIVABLES_BASE_DATE = "2026-06-22";
+const RECEIVABLES_DATA = [
+  { name:"와인비",                            amt:96258235,  term:"장기",  note:"추심중 - 형사고발 준비 중" },
+  { name:"신봉살롱",                          amt:64028800,  term:"장기",  note:"추심중" },
+  { name:"포도로",                            amt:48755620,  term:"장기",  note:"6월17일 1천 입금 예정 -> 지연 중이나, 6월 내 1천 입금 예정" },
+  { name:"주식회사 효자동구십육",              amt:36670160,  term:"장기",  note:"추심중 - 재산 발생되어 가압류 및 형사고발 준비 중" },
+  { name:"스텔라디비노",                      amt:17625180,  term:"장기",  note:"추심중" },
+  { name:"압구정와인마켓",                    amt:7000000,   term:"장기",  note:"개인파산 - 스케쥴 대기 중" },
+  { name:"쏨 키친",                           amt:5032800,   term:"장기",  note:"연내 입금 예정 - 소통 중" },
+  { name:"송도 더와인 십사점오",               amt:4495480,   term:"장기",  note:"연내 입금 예정 - 소통 중" },
+  { name:"뱅오제니스 해운대",                  amt:2500000,   term:"장기",  note:"미추심 예정" },
+  { name:"주식회사 레드셀러",                  amt:191501310, term:"6개월", note:"6월 약 2천 입금 예정 / 7월부터 분할 결제 (최초 매입시 협의 완료)" },
+  { name:"주식회사 탭샵바(청계천 삼일빌딩점)",  amt:11897600,  term:"4개월", note:"추심중" },
+  { name:"주식회사 탭샵바(여의도점)",          amt:11750000,  term:"4개월", note:"추심중" },
+  { name:"주식회사 탭샵바(도산대로점)",        amt:10940160,  term:"4개월", note:"추심중" },
+  { name:"주식회사 탭샵바(동대문두타점)",      amt:8334400,   term:"4개월", note:"추심중" },
+  { name:"일오종합주류",                      amt:22721710,  term:"3개월", note:"대화주류 통합 과정 중으로 통합 시점 처리 예정" },
+  { name:"마릴린와인 365 교대점",              amt:5929110,   term:"3개월", note:"6월말 입금" },
+  { name:"주식회사 탭샵바(합정점)",            amt:5069240,   term:"3개월", note:"추심중" },
+  { name:"(합)신세계수입주류-부산",            amt:2741640,   term:"3개월", note:"6월말 입금 - 데일리샷 입고 분으로 입금 처리 지연" },
+  { name:"금수장호텔",                        amt:392700,    term:"3개월", note:"6월말 입금" },
+  { name:"배산임수",                          amt:8975670,   term:"2개월", note:"6월24일 내 입금" },
+  { name:"더와인케이브-전주",                  amt:4762890,   term:"2개월", note:"3개월 단위 결제 중 - 7월 중순 내 입금 예정" },
+  { name:"와뱅(부산본점)",                    amt:2781900,   term:"2개월", note:"4월말일 입고분 -> 5월 배송으로 인한 결제일자 지연" },
+  { name:"흥창기업 주식회사",                  amt:2355760,   term:"2개월", note:"6월말 입금" },
+  { name:"쎄빠-대구",                         amt:1907620,   term:"2개월", note:"완료 - 반품 부분" },
+  { name:"더 와인 콜렉티브 도산",              amt:1155990,   term:"2개월", note:"6월말 입금" },
+  { name:"와인아띠",                          amt:1000000,   term:"2개월", note:"6월말 입금" },
+  { name:"크로스비",                          amt:982630,    term:"2개월", note:"6월25일 내 입금" },
+  { name:"보르도2호점",                       amt:626800,    term:"2개월", note:"6월말 입금" },
+  { name:"국제수입주류합자회사 - 충주",         amt:356400,    term:"2개월", note:"6월말 입금 / 일부 회사 예정 - 데일리샷 충주점 폐점 예정" },
+  { name:"라운지많",                          amt:328790,    term:"2개월", note:"6월말 입금" },
+  { name:"호담주류-대구",                      amt:140250,    term:"2개월", note:"6월말 입금" },
+];
+
+/* 천단위 콤마 (validation_rules §8-1) */
+const won = n => n.toLocaleString("en-US");
+
+/* 집계(자동 산출) */
+const R_TOTAL = RECEIVABLES_DATA.reduce((s,r)=>s+r.amt,0);            // 총 채권 = 579,018,845 (파일 합계와 일치)
+const R_COUNT = RECEIVABLES_DATA.length;                              // 31개처
+const R_TERMS = ["장기","6개월","4개월","3개월","2개월"];             // 미수 경과(외상개월) 구간
+const R_BY_TERM = R_TERMS.map(t => {
+  const rows = RECEIVABLES_DATA.filter(r => r.term === t);
+  return { term:t, count:rows.length, sum:rows.reduce((s,r)=>s+r.amt,0) };
+});
+const R_HIGHRISK = RECEIVABLES_DATA.filter(r => /형사고발|개인파산|가압류/.test(r.note)); // 법적조치 비고 명시
+const R_HIGHRISK_SUM = R_HIGHRISK.reduce((s,r)=>s+r.amt,0);
+
+/* =========================================================
+   매출 실적 / 사업계획 목표 — 2026 (본부 전체)
+   출처(전부 실파일·합계행 검증):
+   · 채널 실적(01~06): 호텔/업소/도매/소매/지방(통합) 1월부터 06월22일.XLS — m[1~5月] 채널파일
+   · 06월 실적: 2026년 06월 목표  현재 실적.xlsx (요약·마감예상) ← ajune·예상마감
+   · 월별/06월/01~05 목표: 26Y ON본부 사업계획서.xlsx
+   · 연간 채널 목표 + 전년(25년) 실적: 2026년 사업계획서 기준 연간 목표.xls
+   실적(매출자료)과 목표(계획서/연간파일)는 분리 표시. 임의 생성·추정 없음.
+   ========================================================= */
+const SRC_ACTUAL  = "채널 실적 5종(호텔·업소·도매·소매·지방) 1월부터 06월22일";
+const SRC_JUNE    = "2026년 06월 목표 현재 실적.xlsx";
+const SRC_PLAN    = "26Y ON본부 사업계획서.xlsx";
+const SRC_ANNUAL  = "2026년 사업계획서 기준 연간 목표.xls";
+const SALES_BASE  = "2026-06-22";
+
+/* 채널 통합: 목표(t0105·tjune=계획서, tann=연간파일) / 실적(m[1~5月]=채널파일, ajune=06요약) /
+   prev=25년 연간 실적(연간파일) / m25[1~5月]=25년 동기 실적(25년 채널 실적 자료 5종) */
+const CH = [
+  {ch:"호텔", t0105:870000000,   tjune:191000000, tann:2300000000, ajune:229140200, prev:1897678833,
+    m:[199571500,128281300,237705250,253234600,245718100], m25:[95197600,130656050,158007600,195632468,147559486]},
+  {ch:"업소", t0105:427500000,   tjune:114000000, tann:1200000000, ajune:48392600,  prev:855468910,
+    m:[63186700,76708660,107384500,118059500,92500100],     m25:[61645560,63701560,78866890,85511860,84636920]},
+  {ch:"도매", t0105:1137500000,  tjune:281000000, tann:3700000000, ajune:287151018, prev:3678882205,
+    m:[235869750,153838050,232690600,323785600,300569300],   m25:[260617051,308503870,270867840,282039120,372163080]},
+  {ch:"소매", t0105:873000000,   tjune:211000000, tann:3300000000, ajune:56210720,  prev:2445988772,
+    m:[194146980,180586500,167850300,114369290,151804050],   m25:[179813970,240195590,196609772,225338900,99180790]},
+  {ch:"지방", t0105:508000000,   tjune:130000000, tann:1500000000, ajune:38907550,  prev:1359230140,
+    m:[111823430,48612150,101527730,51615200,48709350],      m25:[99350610,111211060,117162290,109608420,153372090]},
+];
+CH.forEach(c => { c.a0105 = c.m.reduce((s,v)=>s+v,0); c.acum = c.a0105 + c.ajune; c.a0105_25 = c.m25.reduce((s,v)=>s+v,0); });
+
+/* 본부 파생(자동 산출) */
+const B_0105   = CH.reduce((s,c)=>s+c.a0105,0);   // 3,940,148,490 (채널 합계행 합과 일치)
+const B_JUNE   = CH.reduce((s,c)=>s+c.ajune,0);   // 659,802,088 (06 요약파일 누적실적)
+const B_CUM    = B_0105 + B_JUNE;                  // 4,599,950,578
+const B_PREV25 = CH.reduce((s,c)=>s+c.prev,0);    // 10,237,248,860 (전년 연간)
+const B_0105_25 = CH.reduce((s,c)=>s+c.a0105_25,0); // 4,127,450,447 (전년 동기 01~05)
+const T_0105   = CH.reduce((s,c)=>s+c.t0105,0);   // 3,816,000,000 (계획서 01~05 목표)
+const T_JUNE   = CH.reduce((s,c)=>s+c.tjune,0);   // 927,000,000 (계획서 06월 목표)
+const T_ANNUAL = CH.reduce((s,c)=>s+c.tann,0);    // 12,000,000,000 (연간파일 목표)
+const JUNE_FORECAST = 851802088;                  // 06 예상마감(요약파일 제공값)
+const JUNE_REMAIN   = T_JUNE - B_JUNE;            // 267,197,912 (현재 기준 잔여 목표)
+/* 본부 월별 실적(1~5月) = 채널 m 합 */
+const B_MONTHLY = [0,1,2,3,4].map(i => CH.reduce((s,c)=>s+c.m[i],0));
+const MONTH_LABEL = ["1월","2월","3월","4월","5월"];
+
+/* 달성률(validation §8-3): 실적÷목표×100, 소수1자리. 실적 null/목표0 → null */
+const rate1 = (actual, target) => (actual != null && target > 0) ? (actual / target * 100).toFixed(1) + "%" : null;
+
+/* 전년 동기 증감(validation §8-4): (당기−전기)/전기×100. 증가 ▲+ / 감소 ▼− / 보합 – */
+const yoy = (cur, prev) => {
+  if (prev == null || prev <= 0) return { pct: EMPTY.noFile, up:false, down:false };
+  const d = (cur - prev) / prev * 100;
+  return { pct: (d>0?"▲ +":d<0?"▼ ":"– ") + d.toFixed(1) + "%", up:d>0, down:d<0, delta: cur - prev };
+};
+
+/* 표시용: 채널 정렬(도매·소매·업소·호텔·지방) · 본부 월별 누계(1~5) · 회수 진행(추심중) 건수 */
+const CH_ORD = ["도매","소매","업소","호텔","지방"].map(n => CH.find(c => c.ch === n));
+const B_CUMUL = (() => { let a = 0; return B_MONTHLY.map(v => a += v); })();
+const R_INPROG = RECEIVABLES_DATA.filter(r => /추심/.test(r.note)).length; // 비고 '추심' 명시 건수(사실)
+/* 증감 셀 색상 */
+const deltaColor = g => g.up ? "#5fd6a3" : g.down ? "#f08a8a" : "var(--text-3)";
+
+/* =========================================================
+   재사용 컴포넌트 (순수 함수 → HTML 문자열)
+   실데이터 연결 시 인자만 교체.
+   ========================================================= */
+
+function StatusBadge(type, text) {
+  return `<span class="badge badge-${type}"><span class="dot"></span>${text}</span>`;
+}
+
+function EmptyState({ size = "md", icon = "🔌", msg = EMPTY.needData, sub = "" } = {}) {
+  return `
+    <div class="empty ${size}">
+      <div class="e-icon">${icon}</div>
+      <div class="e-msg">${msg}</div>
+      ${sub ? `<div class="e-sub">${sub}</div>` : ""}
+    </div>`;
+}
+
+/* KPI 카드 — value 미지정 시 '—'(미연결), 지정 시 실데이터 표시 */
+function KpiCard({ label, icon = "📊", value = "", unit = "", foot, tone = "warn", src = "" }) {
+  const val = value
+    ? `${value}${unit ? `<span style="font-size:14px;font-weight:600;color:var(--text-3);"> ${unit}</span>` : ""}`
+    : "—";
+  return `
+    <div class="card kpi">
+      <div class="kpi-top">
+        <span class="kpi-label">${label}</span>
+        <span class="kpi-icon">${icon}</span>
+      </div>
+      <div class="kpi-value"${value ? ' style="color:var(--text);"' : ""}>${val}</div>
+      <div class="kpi-foot">${StatusBadge(tone, foot)}${src ? `<span class="kpi-src">${src}</span>` : ""}</div>
+    </div>`;
+}
+
+function Section({ num, title, sheet = "", hint = "", right = "", body }) {
+  return `
+    <section class="section">
+      <div class="section-head">
+        <div class="title">
+          <span class="num">${num}</span>
+          <h2>${title}</h2>
+          ${sheet ? `<span class="sheet">${sheet}</span>` : ""}
+          ${hint ? `<span class="hint">${hint}</span>` : ""}
+        </div>
+        <div>${right}</div>
+      </div>
+      ${body}
+    </section>`;
+}
+
+/* 표 골격 — 컬럼명은 data_schema.md와 100% 일치. 본문은 빈 상태 1행만(가짜 행 금지) */
+function DataTable(columns, { emptyMsg = EMPTY.needData, tone = "warn" } = {}) {
+  const ths = columns.map(c =>
+    `<th>${c.k}${c.req ? `<span class="req">●</span>` : ""}${c.auto ? `<span class="auto">자동</span>` : ""}</th>`
+  ).join("");
+  return `
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead><tr>${ths}</tr></thead>
+        <tbody>
+          <tr class="tbl-empty-row"><td colspan="${columns.length}">${StatusBadge(tone, emptyMsg)}</td></tr>
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function Tabs(items, activeIdx = 0) {
+  return `<div class="tabs">${items.map((t,i)=>`<button class="tab ${i===activeIdx?"active":""}" data-tab="${i}">${t}</button>`).join("")}</div>`;
+}
+
+/* =========================================================
+   화면 조립
+   ========================================================= */
+
+function Header() {
+  return `
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark">ON</div>
+        <div>
+          <h1>영업ON본부 AI 업무혁신 통합 대시보드</h1>
+          <div class="sub">2025년 대비 2026년 매출·채권·목표달성 현황 통합 관리</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex:none;">
+        <div style="text-align:right;">
+          <div style="font-size:12px;color:var(--text-3);">데이터 기준일</div>
+          <div style="font-size:16px;font-weight:700;">2026-06-22</div>
+        </div>
+        <button class="btn no-print" onclick="window.print()" title="인쇄 또는 PDF로 저장">🖨 인쇄 / PDF</button>
+      </div>
+    </div>
+    <div style="color:var(--text-2);font-size:13px;margin:2px 0 18px;">AI 교육 이후 영업ON본부의 실무 적용 현황을 대표님께 보고하기 위한 대시보드입니다.</div>
+    <div class="statusbar" style="margin-bottom:26px;">
+      <div class="item">💰 매출 실적 <b>본부 5채널</b> ${StatusBadge("ok","연결")}</div>
+      <div class="divider"></div>
+      <div class="item">📊 전년(2025) 비교 ${StatusBadge("ok","연결")}</div>
+      <div class="divider"></div>
+      <div class="item">🎯 목표 <b>계획서·연간</b> ${StatusBadge("ok","연결")}</div>
+      <div class="divider"></div>
+      <div class="item">📑 채권 ${StatusBadge("ok","연결")}</div>
+      <div class="divider"></div>
+      <div class="item">🍷 수입사 TOP10 ${StatusBadge("warn","API 연결 필요")}</div>
+    </div>`;
+}
+
+/* 2. 핵심 KPI — 중복 없이 6개만 */
+function KpiSection() {
+  const cards = [
+    KpiCard({ label: "01~05 누계 매출 (2026)", icon: "💰", value: won(B_0105), unit:"원", foot: "본부 전체 5채널", tone: "ok" }),
+    KpiCard({ label: "2026 연간 목표",          icon: "🎯", value: won(T_ANNUAL), unit:"원", foot: "사업계획서 기준", tone: "ok" }),
+    KpiCard({ label: "연간 목표 대비 달성률",    icon: "📈", value: rate1(B_CUM,T_ANNUAL), foot: `누계 ${won(B_CUM)}원 (1~6/22)`, tone: "ok" }),
+    KpiCard({ label: "06월 현재 실적 (6/22)",   icon: "🗓", value: won(B_JUNE), unit:"원", foot: `목표 대비 ${rate1(B_JUNE,T_JUNE)}`, tone: "ok" }),
+    KpiCard({ label: "총 채권 금액",            icon: "📑", value: won(R_TOTAL), unit:"원", foot: `${R_COUNT}개 거래처`, tone: "ok" }),
+    KpiCard({ label: "조치 필요 거래처",        icon: "⚠", value: String(R_HIGHRISK.length), unit:"개처", foot: `법적조치 명시 · 추심 ${R_INPROG}곳`, tone: "danger" }),
+  ].join("");
+  return Section({
+    num: 1, title: "핵심 지표 요약",
+    hint: "숫자 요약 · 상세는 아래 표 참조",
+    body: `<div class="grid grid-3">${cards}</div>`
+  });
+}
+
+/* 2. 2025년 대비 2026년 매출 비교 (01~05 동기) — 실데이터(25·26 채널 실적자료) */
+function ComparisonSection() {
+  const dAmt = g => `<span style="color:${deltaColor(g)};">${g.delta>=0?"+":"△"}${won(Math.abs(g.delta))}</span>`;
+  const row = (name, a26, a25, strong) => {
+    const g = yoy(a26, a25);
+    return `<tr${strong?' style="border-top:2px solid var(--border);background:var(--surface-2);"':''}>
+      <td style="font-weight:${strong?700:600};color:var(--text);white-space:nowrap;">${name}</td>
+      <td style="text-align:right;color:var(--text-3);">${won(a25)}</td>
+      <td style="text-align:right;color:var(--text);font-weight:${strong?700:400};">${won(a26)}</td>
+      <td style="text-align:right;">${dAmt(g)}</td>
+      <td style="text-align:right;"><b style="color:${deltaColor(g)};">${g.pct}</b></td>
+      <td style="color:var(--text-3);">—</td>
+    </tr>`;
+  };
+  const body = `
+    <div class="card card-pad">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr>
+            <th>구분</th>
+            <th style="text-align:right;">2025년 01~05 매출</th>
+            <th style="text-align:right;">2026년 01~05 매출</th>
+            <th style="text-align:right;">증감액</th>
+            <th style="text-align:right;">증감률</th>
+            <th>비고</th>
+          </tr></thead>
+          <tbody>
+            ${row("영업ON본부 전체", B_0105, B_0105_25, true)}
+            ${CH_ORD.map(c=>row(c.ch, c.a0105, c.a0105_25, false)).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div class="note">· 2025년 = 25년 채널 실적자료 5종(01~05 동기) · 2026년 = 26년 매출자료. 증감률=(26−25)÷25×100(소수1자리). 금액 음수 △ · 증감률 ▲증가/▼감소(validation §8-1·8-4). 06월은 부분월이라 비교 제외.</div>
+    </div>`;
+  return Section({ num:2, title:"2025년 대비 2026년 영업ON본부 매출 비교", hint:"01~05 동기 · 실데이터", body });
+}
+
+/* 3. 2026년 01월~05월 월별 매출 현황 — 본부+채널 월별·전월비·누계 (실데이터) */
+function MonthlySection() {
+  const rows = MONTH_LABEL.map((mn,i)=>{
+    const tot = B_MONTHLY[i];
+    const chCells = CH_ORD.map(c=>`<td style="text-align:right;color:var(--text-3);">${won(c.m[i])}</td>`).join("");
+    let dAmtCell, dRateCell, bigo;
+    if (i===0){ dAmtCell = `<span style="color:var(--text-3);">${EMPTY.noFile}</span>`; dRateCell = dAmtCell; bigo = "전월(2025-12) 자료 미첨부"; }
+    else {
+      const prev=B_MONTHLY[i-1], d=tot-prev, p=d/prev*100, col=d>=0?"#5fd6a3":"#f08a8a";
+      dAmtCell  = `<span style="color:${col};">${d>=0?"+":"△"}${won(Math.abs(d))}</span>`;
+      dRateCell = `<b style="color:${col};">${(d>0?"▲ +":d<0?"▼ ":"– ")+p.toFixed(1)}%</b>`;
+      bigo = "—";
+    }
+    return `<tr>
+      <td style="font-weight:600;color:var(--text);">${mn}</td>
+      <td style="text-align:right;color:var(--text);font-weight:600;">${won(tot)}</td>
+      ${chCells}
+      <td style="text-align:right;">${dAmtCell}</td>
+      <td style="text-align:right;">${dRateCell}</td>
+      <td style="text-align:right;color:var(--text-2);">${won(B_CUMUL[i])}</td>
+      <td style="color:var(--text-3);">${bigo}</td>
+    </tr>`;
+  }).join("");
+  const foot = `<tr style="border-top:2px solid var(--border);background:var(--surface-2);">
+      <td style="font-weight:700;color:var(--text);">누계</td>
+      <td style="text-align:right;font-weight:800;color:var(--text);">${won(B_0105)}</td>
+      ${CH_ORD.map(c=>`<td style="text-align:right;font-weight:700;color:var(--text-3);">${won(c.a0105)}</td>`).join("")}
+      <td></td><td></td>
+      <td style="text-align:right;font-weight:800;color:var(--text);">${won(B_0105)}</td><td></td>
+    </tr>`;
+  const body = `
+    <div class="card card-pad">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr>
+            <th>기준월</th><th style="text-align:right;">전체 매출</th>
+            <th style="text-align:right;">도매</th><th style="text-align:right;">소매</th><th style="text-align:right;">업소</th><th style="text-align:right;">호텔</th><th style="text-align:right;">지방</th>
+            <th style="text-align:right;">전월 대비 증감액</th><th style="text-align:right;">전월 대비 증감률</th><th style="text-align:right;">누계 매출</th><th>비고</th>
+          </tr></thead>
+          <tbody>${rows}${foot}</tbody>
+        </table>
+      </div>
+      <div class="note">· 출처 = 26년 채널 매출자료 5종(전체=5채널 합). 전월 대비는 2026년 내 비교(1월은 전월 2025-12 자료 미보유 → <b>${EMPTY.noFile}</b>). 금액 음수 △ · 증감률 ▲증가/▼감소.</div>
+    </div>`;
+  return Section({ num:3, title:"2026년 01월~05월 월별 매출 현황", hint:"본부+채널 월별·전월비·누계", body });
+}
+
+/* 4. 2026년 목표 대비 달성 현황 — 실적·목표·달성률 통합 1표 */
+function TargetSection() {
+  const risk = r => { const v=parseFloat(r); return v>=100?["ok","정상"]:v>=50?["warn","주의"]:["danger","위험"]; };
+  const dCell = (a,t) => { const d=a-t; return `<span style="color:${d>=0?'#5fd6a3':'#f08a8a'};">${d>=0?"+":"△"}${won(Math.abs(d))}</span>`; };
+  const row = (name,tann,tjune,ajune,acum,strong) => {
+    const ar=rate1(ajune,tjune), cr=rate1(acum,tann), rk=risk(ar);
+    return `<tr${strong?' style="border-top:2px solid var(--border);background:var(--surface-2);"':''}>
+      <td style="font-weight:${strong?700:600};color:var(--text);white-space:nowrap;">${name}</td>
+      <td style="text-align:right;color:var(--text-3);">${won(tann)}</td>
+      <td style="text-align:right;">${won(tjune)}</td>
+      <td style="text-align:right;color:var(--text);font-weight:${strong?700:400};">${won(ajune)}</td>
+      <td style="text-align:right;">${dCell(ajune,tjune)}</td>
+      <td style="text-align:right;"><b style="color:${parseFloat(ar)>=100?'#5fd6a3':'var(--accent)'};">${ar}</b></td>
+      <td style="text-align:right;"><b style="color:#d98a9c;">${cr}</b></td>
+      <td>${StatusBadge(rk[0],rk[1])}</td>
+      <td style="color:var(--text-3);">${EMPTY.noFile}</td>
+    </tr>`;
+  };
+  const body = `
+    <div class="card card-pad">
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr>
+            <th>구분</th>
+            <th style="text-align:right;">2026 연간 목표</th>
+            <th style="text-align:right;">06월 목표</th>
+            <th style="text-align:right;">06월 현재 실적</th>
+            <th style="text-align:right;">목표 대비 차이</th>
+            <th style="text-align:right;">달성률(06월)</th>
+            <th style="text-align:right;">연간 누계 달성률</th>
+            <th>리스크 요인</th>
+            <th>필요 조치</th>
+          </tr></thead>
+          <tbody>
+            ${row("영업ON본부 전체", T_ANNUAL, T_JUNE, B_JUNE, B_CUM, true)}
+            ${CH_ORD.map(c=>row(c.ch, c.tann, c.tjune, c.ajune, c.acum, false)).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        · 목표=계획서(06월)·연간목표파일(연간, 도매3.7B/소매3.3B) · 06월 실적=마감예상 요약파일(6/22). 06월 <b>예상 마감 ${won(JUNE_FORECAST)}원(${rate1(JUNE_FORECAST,T_JUNE)})</b> · 잔여 목표 ${won(JUNE_REMAIN)}원.<br/>
+        · 달성률=실적÷목표×100(소수1자리). <b>리스크 요인</b>=06월 달성률 기준 자동(100%↑ 정상 / 50~100 주의 / 50%↓ 위험). <b>필요 조치</b>는 입력자료 없음 → <b>${EMPTY.noFile}</b>(임의 생성 안 함).<br/>
+        · 본부 06월 달성 ${rate1(B_JUNE,T_JUNE)} · 연간 누계 달성 ${rate1(B_CUM,T_ANNUAL)} · 전년(25년 연간 ${won(B_PREV25)}원) 대비 26 목표 성장률 +${((T_ANNUAL/B_PREV25-1)*100).toFixed(1)}%.
+      </div>
+    </div>`;
+  return Section({ num:4, title:"2026년 목표 대비 달성 현황", hint:"목표·실적·달성률 통합", body });
+}
+
+/* 5. 채권 현황 — S3 receivables (실데이터). 요약 카드 + 상세표 */
+function ReceivableSection() {
+  const stat = (label,val,color,sub) => `<div class="card card-pad" style="padding:13px 15px;">
+      <div style="font-size:12px;color:var(--text-2);font-weight:600;">${label}</div>
+      <div style="font-size:18px;font-weight:800;margin-top:6px;${color?`color:${color};`:''}">${val}</div>
+      ${sub?`<div class="note" style="margin-top:3px;">${sub}</div>`:''}
+    </div>`;
+  const summary = `
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;">
+      ${stat("총 채권 금액", won(R_TOTAL)+"원", "var(--text)", R_COUNT+"개 거래처")}
+      ${stat("정상 채권", EMPTY.noFile, "var(--text-3)", "회수상태 자료 없음")}
+      ${stat("지연 채권", EMPTY.noFile, "var(--text-3)", "회수상태 자료 없음")}
+      ${stat("고위험 거래처", R_HIGHRISK.length+"개처", "#f08a8a", won(R_HIGHRISK_SUM)+"원 · 법적조치 명시")}
+      ${stat("회수 진행", R_INPROG+"개처", "#e7c869", "비고 '추심' 명시")}
+    </div>`;
+  const rows = RECEIVABLES_DATA.map((r,i)=>`<tr>
+      <td style="color:var(--text-3);">${i+1}</td>
+      <td style="color:var(--text);font-weight:600;white-space:nowrap;">${r.name}</td>
+      <td style="text-align:right;color:var(--text);">${won(r.amt)}</td>
+      <td style="white-space:nowrap;">${r.term}</td>
+      <td style="color:var(--text-3);">${r.note}</td>
+    </tr>`).join("");
+  const foot = `<tr style="border-top:2px solid var(--border);background:var(--surface-2);">
+      <td></td><td style="font-weight:700;color:var(--text);">합계 (${R_COUNT}개처)</td>
+      <td style="text-align:right;font-weight:800;color:var(--text);">${won(R_TOTAL)}</td>
+      <td colspan="2" style="color:var(--text-3);">채널·담당자·최근입금일·채권상태·조치 필요: ${EMPTY.noFile}</td>
+    </tr>`;
+  const body = `
+    <div class="card card-pad">
+      ${summary}
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr>
+            <th>NO</th><th>거래처명</th>
+            <th style="text-align:right;">총 채권금액(원)</th>
+            <th>최장 미수기간</th><th>비고(회수 메모)</th>
+          </tr></thead>
+          <tbody>${rows}${foot}</tbody>
+        </table>
+      </div>
+      <div class="note">
+        · 출처 <b>${RECEIVABLES_SRC}</b> · 기준일 <b>${RECEIVABLES_BASE_DATE}</b>. 거래처명·채권금액·미수기간·비고는 원자료 그대로(임의값 없음).<br/>
+        · 요청 컬럼 중 <b>채널·담당자·지연채권(분리)·최근입금일·채권상태·조치 필요 여부</b>는 원자료에 없어 <b>${EMPTY.noFile}</b>. ‘정상/지연 채권 금액’은 회수상태 자료 입수 시 산출.
+      </div>
+    </div>`;
+  return Section({ num:5, title:"영업ON본부 채권 현황", hint:`총 ${won(R_TOTAL)}원 · ${R_COUNT}개처`, body });
+}
+
+/* 7. 국내 와인 수입사 TOP 10 — 타사(경쟁사) '실적' 기준 (동향 아님)
+   ⚠ 회사 단위 '수입통관액'은 공개되지 않아, 공개 가능한 '매출액(공시·언론)'으로 대체 반영.
+   ⚠ 출처 없는 정보·임의 생성 금지(R4·R5). 출처 미보유 셀/순위는 '자료 미첨부' 유지. */
+const MARKET_TOP10_COLS = [
+  {k:"순위"},{k:"수입사명"},{k:"주요 카테고리"},{k:"주요 국가 / 산지"},{k:"수입액(실적)"},
+  {k:"시장 점유율"},{k:"전년 대비 증감"},{k:"순위 변동"},{k:"확인 기준일"},{k:"데이터 출처"},
+];
+/* 공개 자료 기반 — 출처: 아시아경제 2025-04-14 (각 사 2024 감사보고서 매출액). 기준 2024년 연간.
+   ※ 값은 '매출액(공시)'이며 관세청 통관 '수입액'이 아님(섹션 주석 명시). */
+const MARKET_REF_SRC  = "아시아경제 2025-04-14";
+const MARKET_REF_BASE = "2024년 연간(매출액·공시)";
+const MARKET_TOP10_DATA = [
+  { rank:1, name:"신세계엘앤비", rev:"1,655억원", yoy:{t:"▼ −7.8%",  down:true} },
+  { rank:2, name:"금양인터내셔날", rev:"1,064억원", yoy:{t:"▼ −11.4%", down:true} },
+  { rank:3, name:"아영에프비씨", rev:"992억원",   yoy:{t:"▼ −7.0%",  down:true} },
+  { rank:4, name:"나라셀라",     rev:"827억원",   yoy:{t:"▼ −3.0%",  down:true} },
+];
+function ImporterSection() {
+  const na = `<span style="color:var(--text-3);">${EMPTY.noFile}</span>`;
+  const rows = MARKET_TOP10_DATA.map(r => `<tr>
+      <td style="color:var(--text-3);">${r.rank}</td>
+      <td style="font-weight:600;color:var(--text);white-space:nowrap;">${r.name}</td>
+      <td>${na}</td>
+      <td>${na}</td>
+      <td style="text-align:right;color:var(--text);font-weight:600;">${r.rev}</td>
+      <td style="text-align:right;">${na}</td>
+      <td style="text-align:right;"><b style="color:${r.yoy.down?'#f08a8a':'#5fd6a3'};">${r.yoy.t}</b></td>
+      <td>${na}</td>
+      <td style="white-space:nowrap;color:var(--text-3);">${MARKET_REF_BASE}</td>
+      <td style="white-space:nowrap;color:var(--text-3);font-size:11px;">${MARKET_REF_SRC}</td>
+    </tr>`).join("");
+  const restRow = `<tr><td style="color:var(--text-3);">5~10</td><td colspan="9" style="color:var(--text-3);">${StatusBadge("warn", EMPTY.noFile)} 5~10위 및 카테고리·국가/산지·점유율·순위변동은 공개 출처 미확보</td></tr>`;
+  const table = `
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead><tr>${MARKET_TOP10_COLS.map(c=>`<th${/수입액|점유율|증감/.test(c.k)?' style="text-align:right;"':''}>${c.k}</th>`).join("")}</tr></thead>
+        <tbody>${rows}${restRow}</tbody>
+      </table>
+    </div>`;
+  const banner = `
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid rgba(226,185,59,0.35);border-left:4px solid var(--warn);background:linear-gradient(90deg,rgba(226,185,59,0.10),rgba(226,185,59,0.02));border-radius:10px;padding:13px 16px;margin-bottom:14px;">
+      <div style="font-weight:700;font-size:14px;">📊 공개 자료 기준 (주요 4사 반영)</div>
+      <div style="color:var(--text-2);font-size:13px;">출처 명시 4사만 기입 · 미확보 항목은 <b>자료 미첨부</b> 유지(임의 생성 안 함).</div>
+      <div style="flex:1 1 auto;"></div>
+      ${StatusBadge("warn", "공개자료 부분 반영")}
+    </div>`;
+  const body = `
+    <div class="card card-pad">
+      ${banner}
+      ${table}
+      <div class="note">
+        · 출처: <b>${MARKET_REF_SRC}</b> 보도(각 사 <b>2024 감사보고서 매출액</b>). 기준 <b>2024년 연간</b>.<br/>
+        · ⚠ 표의 ‘수입액(실적)’은 회사 단위 <b>매출액(공시) 기준</b>이며 <b>관세청 통관 수입액이 아닙니다</b>(회사별 통관 수입액은 미공개). 단위 <b>억원</b>.<br/>
+        · 주요 카테고리·국가/산지·시장 점유율·순위 변동·5~10위는 공개 출처 미확보 → <b>${EMPTY.noFile}</b>. 정확한 관세청/협회 수입액 자료 입수 시 교체 반영.<br/>
+        · 자사(영업ON본부) 순위는 위 4사에 미포함 → ${EMPTY.noFile}(임의 표기 안 함).
+      </div>
+    </div>`;
+  return Section({
+    num: 6, title: "국내 와인 수입사 TOP 10 (타사 실적) — 참고",
+    sheet: "S4 market_top10",
+    hint: "공개자료 4사(2024 매출) · 공식 API 연결 필요",
+    right: StatusBadge("warn", "API 연결 필요"),
+    body
+  });
+}
+
+/* 7. 대표님 보고용 요약 — 통합(중복 제거) */
+function SummarySection() {
+  const gB = yoy(B_0105, B_0105_25);
+  const items = [
+    ["2026년 01~05월 매출 요약", "ok","실데이터",
+      `본부 ${won(B_0105)}원 / 목표 ${won(T_0105)}원 · 달성 ${rate1(B_0105,T_0105)}`],
+    ["2025년 대비 비교 자료 상태", "ok","연결완료",
+      `25년 5채널 실적 연결 · 본부 전년 동기 ${won(B_0105_25)}원 대비 ${gB.pct}`],
+    ["2026년 목표 대비 달성 현황", "ok","실데이터",
+      `06월 달성 ${rate1(B_JUNE,T_JUNE)}(실적 ${won(B_JUNE)}/목표 ${won(T_JUNE)}) · 연간 누계 ${rate1(B_CUM,T_ANNUAL)}`],
+    ["주요 채권 리스크", "warn","주의",
+      `총 ${won(R_TOTAL)}원 · ${R_COUNT}개처 · 법적조치 고위험 ${R_HIGHRISK.length}곳(${won(R_HIGHRISK_SUM)}원) · 정상/지연 분류 ${EMPTY.noFile}`],
+    ["API 연동 예정 영역", "warn",EMPTY.needApi,
+      `수입사 TOP10 공식 통관 수입액(관세청/협회) — 현재 공개자료 4사만 참고`],
+    ["대표님 확인 필요 사항", "neutral","확인 요청",
+      `① 회수상태(정상/지연) 분류 자료 ② 수입사 공식 수입액 자료 ③ 채권 채널·담당자 매핑`],
+    ["다음 실행 계획", "neutral","예정",
+      `① 06월 최종 마감 실적 반영 ② 7~12월 월별 실적 순차 반영 ③ 회수상태 자료 입수 시 채권 6구분 적용`],
+  ].map((x,i)=>`
+    <div class="summary-item">
+      <div class="s-num">${i+1}</div>
+      <div class="s-body">
+        <div class="s-title">${x[0]}</div>
+        <div class="s-val">${StatusBadge(x[1], x[2])}<span class="s-src">${x[3]}</span></div>
+      </div>
+    </div>`).join("");
+  const body = `
+    <div class="card card-pad">
+      <div class="summary-list">${items}</div>
+      <div class="note">· 모든 수치는 첨부 실데이터(매출·목표·채권·25년 실적)에서 산출 · 자료 없는 항목은 표준 문구로 표시 · 임의 코멘트 없음.</div>
+    </div>`;
+  return Section({ num:7, title:"대표님 보고용 요약", body });
+}
+
+
+function Footnote() {
+  return `
+    <div class="footnote">
+      본 대시보드의 수치는 첨부된 실데이터(매출·목표·채권 자료 및 2025년 채널 실적)에서 산출되었으며, 자료 없는 항목은 표준 문구(자료 미첨부 / API 연결 필요 등)로만 표시됩니다.<br/>
+      가짜데이터 생성 금지 · 영업ON본부 AI 업무혁신 · 보고대상 대표님 · 데이터 기준일 2026-06-22
+    </div>`;
+}
+
+/* 렌더 */
+document.getElementById("app").innerHTML = [
+  Header(),            // 제목·부제·설명·기준일
+  KpiSection(),        // 1. 핵심 KPI 6
+  ComparisonSection(), // 2. 2025 vs 2026 비교
+  MonthlySection(),    // 3. 월별 매출 현황
+  TargetSection(),     // 4. 목표 대비 달성
+  ReceivableSection(), // 5. 채권 현황
+  ImporterSection(),   // 6. 수입사 TOP10 (참고·하단)
+  SummarySection(),    // 7. 대표님 보고용 요약
+  Footnote(),
+].join("");
+
+/* 탭 인터랙션 — 시각 전환만(데이터 전환·가짜 상세 생성 없음) */
+document.getElementById("app").addEventListener("click", (e) => {
+  const tab = e.target.closest(".tab");
+  if (!tab) return;
+  const group = tab.parentElement;
+  group.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  tab.classList.add("active");
+});
+
+/* ===== 접근 잠금 (간단 비밀번호) — 클라이언트 측 SHA-256 게이트 =====
+   ⚠ 화면 차단용. HTML 소스로 데이터 열람은 가능(완전 보안 아님). 강한 보안은 콘텐츠 암호화/호스팅 비번 권장. */
+(function(){
+  var HASH = "0fde51116efab90707b7f2952cb1d08112ad3bc4d45ee7afeb58a3d1b5739346"; // 접근 비밀번호의 SHA-256
+  // 순수 JS SHA-256 (의존성 없음 · 공개도메인 geraintluff)
+  function sha256(ascii){
+    function rr(v,a){return (v>>>a)|(v<<(32-a));}
+    var mp=Math.pow, mw=mp(2,32), L='length', i,j, result='', words=[], bitLen=ascii[L]*8;
+    var hash=sha256.h=sha256.h||[], k=sha256.k=sha256.k||[], pc=k[L], comp={};
+    for(var c=2; pc<64; c++){ if(!comp[c]){ for(i=0;i<313;i+=c){comp[i]=c;}
+      hash[pc]=(mp(c,.5)*mw)|0; k[pc++]=(mp(c,1/3)*mw)|0; } }
+    ascii+='\x80'; while(ascii[L]%64-56) ascii+='\x00';
+    for(i=0;i<ascii[L];i++){ j=ascii.charCodeAt(i); if(j>>8) return; words[i>>2]|=j<<((3-i)%4)*8; }
+    words[words[L]]=((bitLen/mw)|0); words[words[L]]=(bitLen);
+    for(j=0;j<words[L];){ var w=words.slice(j,j+=16), oh=hash; hash=hash.slice(0,8);
+      for(i=0;i<64;i++){ var w15=w[i-15], w2=w[i-2], a=hash[0], e=hash[4];
+        var t1=hash[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]
+          +(w[i]=(i<16)?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]
+          +(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);
+        var t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+        hash=[(t1+t2)|0].concat(hash); hash[4]=(hash[4]+t1)|0; }
+      for(i=0;i<8;i++){ hash[i]=(hash[i]+oh[i])|0; } }
+    for(i=0;i<8;i++){ for(j=3;j+1;j--){ var b=(hash[i]>>(j*8))&255; result+=((b<16)?0:'')+b.toString(16); } }
+    return result;
+  }
+  var gate=document.getElementById("gate");
+  if(!gate) return;
+  function authed(){ try { return sessionStorage.getItem("on_auth")==="1"; } catch(e){ return false; } }
+  function remember(){ try { sessionStorage.setItem("on_auth","1"); } catch(e){} }
+  function unlock(){ if(gate && gate.parentNode) gate.parentNode.removeChild(gate); }
+  if(authed()){ unlock(); return; }
+  var pw=document.getElementById("gate-pw"), go=document.getElementById("gate-go"), err=document.getElementById("gate-err");
+  function tryOpen(){
+    if(sha256(pw.value)===HASH){ remember(); unlock(); }
+    else { err.textContent="비밀번호가 올바르지 않습니다."; pw.value=""; pw.focus(); }
+  }
+  go.addEventListener("click", tryOpen);
+  pw.addEventListener("keydown", function(e){ if(e.key==="Enter") tryOpen(); });
+  try { pw.focus(); } catch(e){}
+})();
+</script>
+</body>
+</html>

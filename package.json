@@ -1,0 +1,14 @@
+{
+  "name": "yeongup-on-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "영업ON본부 AI 업무혁신 통합 대시보드 — static web dashboard",
+  "scripts": {
+    "build": "node build.js",
+    "serve": "npx --yes serve dist",
+    "preview": "npx --yes serve dist",
+    "start": "npx --yes serve dist",
+    "deploy:netlify": "npx --yes netlify-cli deploy --dir=dist --prod",
+    "deploy:vercel": "npx --yes vercel --prod"
+  }
+}

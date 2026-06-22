@@ -1,0 +1,10 @@
+# Netlify 배포 설정
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# 단일 페이지 — 모든 경로를 index.html 로
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
