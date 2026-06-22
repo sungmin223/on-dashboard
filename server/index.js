@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { retrieve, getInventory, loadInventory } from "./rag.js";
 import { buildSystemPrompt } from "./prompt.js";
+import { demoAnswer } from "./demoAnswer.js";
 
 dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -46,15 +47,19 @@ app.get("/api/inventory", (_req, res) => {
 /* AI 어시스턴트 */
 app.post("/api/chat", async (req, res) => {
   try {
-    if (!API_KEY) {
-      return res.status(503).json({ error: "서버에 ANTHROPIC_API_KEY 가 설정되지 않았습니다. .env 를 확인하세요." });
-    }
     const messages = Array.isArray(req.body?.messages) ? req.body.messages : null;
     if (!messages || !messages.length) {
       return res.status(400).json({ error: "messages 가 필요합니다." });
     }
     // 마지막 사용자 발화로 재고 검색(RAG)
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
+
+    // API 키가 없으면 → 규칙 기반 더미 AI(데모)로 폴백. 실재고만 근거로 응답.
+    if (!API_KEY) {
+      const { answer, used } = demoAnswer(lastUser?.content || "", getInventory());
+      return res.json({ answer, used, model: "demo-rule-based", demo: true });
+    }
+
     const context = lastUser ? retrieve(lastUser.content, 25) : [];
     const system = buildSystemPrompt(context);
 

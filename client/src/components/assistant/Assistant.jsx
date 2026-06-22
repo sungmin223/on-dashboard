@@ -11,11 +11,20 @@ export default function Assistant({ onClose }) {
   const [messages, setMessages] = useState([]); // {role:'user'|'assistant'|'error', content}
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [demo, setDemo] = useState(false); // 키 없을 때 규칙 기반 데모 모드
   const bodyRef = useRef(null);
 
   useEffect(() => {
     if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
   }, [messages, loading]);
+
+  // 서버에 API 키가 없으면 데모(규칙 기반) 모드임을 표시
+  useEffect(() => {
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((d) => setDemo(!d.hasApiKey))
+      .catch(() => {});
+  }, []);
 
   async function send(text) {
     const q = (text ?? input).trim();
@@ -49,8 +58,8 @@ export default function Assistant({ onClose }) {
       <div className="ai-head">
         <span className="ai-dot" />
         <div>
-          <h3>AI 어시스턴트</h3>
-          <div className="ai-sub">실재고 데이터 기반 · 한국어 응답</div>
+          <h3>AI 어시스턴트{demo && <span className="ai-badge">데모</span>}</h3>
+          <div className="ai-sub">{demo ? "규칙 기반 데모 · 실재고 근거" : "실재고 데이터 기반 · 한국어 응답"}</div>
         </div>
         {onClose && <button className="ai-x" onClick={onClose} title="닫기">×</button>}
       </div>

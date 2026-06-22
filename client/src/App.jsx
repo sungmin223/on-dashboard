@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { Suspense, lazy, useState } from "react";
 import Gate from "./components/Gate.jsx";
 import LegacyDashboard from "./components/LegacyDashboard.jsx";
-import Inventory from "./components/inventory/Inventory.jsx";
 import Assistant from "./components/assistant/Assistant.jsx";
+
+// 재고 분석(차트 라이브러리 포함)은 필요할 때만 로드 → 초기 번들 경량화
+const Inventory = lazy(() => import("./components/inventory/Inventory.jsx"));
 
 export default function App() {
   const [unlocked, setUnlocked] = useState(
@@ -40,7 +42,13 @@ export default function App() {
 
       <div className="layout">
         <main className="main-col">
-          {view === "dashboard" ? <LegacyDashboard /> : <Inventory />}
+          {view === "dashboard" ? (
+            <LegacyDashboard />
+          ) : (
+            <Suspense fallback={<div className="lazy-fallback">재고 데이터를 불러오는 중…</div>}>
+              <Inventory />
+            </Suspense>
+          )}
         </main>
         {aiOpen && (
           <aside className="ai-col">

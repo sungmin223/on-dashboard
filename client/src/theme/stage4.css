@@ -139,3 +139,12 @@ table.inv-tbl .name { color: var(--text); font-weight: 600; }
 .inv-pager button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 980px;
   padding: 6px 14px; font-size: 13px; cursor: pointer; }
 .inv-pager button:disabled { color: var(--text-3); cursor: default; opacity: .5; }
+
+/* lazy 로딩 fallback (재고 분석 초기 로드 시) */
+.lazy-fallback { display: flex; align-items: center; justify-content: center; min-height: 320px;
+  color: var(--text-2); font-size: 14px; font-weight: 600; }
+
+/* AI 데모(규칙 기반) 모드 배지 */
+.ai-badge { display: inline-block; margin-left: 7px; padding: 1px 7px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; vertical-align: middle;
+  background: rgba(255,149,0,0.14); color: #b35a00; letter-spacing: .02em; }
