@@ -9,3 +9,18 @@ _tmp*/
 dashboard_backup_*.html
 
 .vercel
+
+# ===== Stage 4 (Vite+React + 백엔드 + 실데이터) =====
+# 비밀키 — 절대 커밋 금지
+.env
+.env.local
+.env.*.local
+
+# 빌드 산출물
+client/dist/
+
+# 실데이터(내부 단가/재고 보호) — npm run import-data 로 로컬 생성
+data/inventory.json
+data/source/*
+!data/source/.gitkeep
+

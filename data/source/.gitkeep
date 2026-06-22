@@ -1,0 +1,2 @@
+# 이 폴더에 신동와인 재고표 엑셀(.xls/.xlsx)을 넣고 `npm run import-data` 를 실행하세요.
+# 원본 엑셀과 생성된 inventory.json 은 보안상 git 에 커밋되지 않습니다(.gitignore).

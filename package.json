@@ -1,14 +1,31 @@
 {
   "name": "yeongup-on-dashboard",
-  "version": "1.0.0",
   "private": true,
-  "description": "영업ON본부 AI 업무혁신 통합 대시보드 — static web dashboard",
+  "version": "4.0.0",
+  "type": "module",
+  "description": "영업ON본부 통합 대시보드 — Stage 4 (Vite+React + 백엔드 프록시 + 실재고 + AI 어시스턴트)",
   "scripts": {
-    "build": "node build.js",
-    "serve": "npx --yes serve dist",
-    "preview": "npx --yes serve dist",
-    "start": "npx --yes serve dist",
-    "deploy:netlify": "npx --yes netlify-cli deploy --dir=dist --prod",
-    "deploy:vercel": "npx --yes vercel --prod"
+    "import-data": "node scripts/import-data.mjs",
+    "dev": "concurrently -k -n server,web -c blue,magenta \"node server/index.js\" \"vite --config client/vite.config.js\"",
+    "build": "vite build --config client/vite.config.js",
+    "start": "node server/index.js",
+    "preview": "npm run build && npm run start",
+    "build:v1": "node build.js",
+    "gen:legacy": "node scripts/gen-legacy.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.65.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.0",
+    "vite": "^5.4.11",
+    "xlsx": "^0.18.5"
   }
 }

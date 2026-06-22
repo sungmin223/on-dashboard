@@ -1,86 +1,81 @@
-# 영업ON본부 AI 업무혁신 통합 대시보드 — 정적 웹 배포
+# 영업ON본부 통합 대시보드 — Stage 4 (로컬 실행)
 
-대표님 및 타 부서 인원이 **별도 설치 없이 웹 브라우저로** 확인할 수 있는 정적 대시보드입니다.
-CSS·JS가 모두 단일 HTML에 인라인되어 있어 **외부 의존성이 전혀 없습니다**(오프라인 동작, CDN/서버 불필요).
+기존 정적 대시보드(v1)를 **Vite + React 프론트 + 경량 백엔드 프록시** 구조로 발전시킨 버전입니다.
+**기존 대시보드 콘텐츠(7개 섹션·수치·텍스트)는 100% 보존**하고, 그 위에 **실재고 데이터 분석**과
+**AI 어시스턴트(RAG)**를 추가했습니다.
 
----
-
-## 폴더 구조
-```
-yeongup-on-dashboard/
-├── dashboard.html      # 소스(원본). 데이터·화면 수정은 여기서
-├── build.js            # 빌드: dashboard.html → dist/index.html 복사
-├── dist/
-│   └── index.html      # ★ 배포 대상 (이 폴더만 올리면 됨)
-├── package.json        # build / serve / deploy 스크립트
-├── netlify.toml        # Netlify 설정
-├── vercel.json         # Vercel 설정
-└── README.md           # (이 문서)
-```
-- **진입 파일**: `dist/index.html`
-- **파일명 영문화 완료**, 로컬 절대경로(`C:\...`, `file://`)·외부참조 **0건**.
-- `dist/` 폴더만 다른 PC·웹서버·정적 호스팅에 올려도 그대로 동작합니다.
+> ⚠ **공개 배포 금지.** 내부 단가·재고·매출 정보를 포함하므로 **로컬에서만** 실행하세요.
+> Claude API 키는 **서버 `.env`에만** 두며, 클라이언트 번들·git에 절대 포함되지 않습니다.
 
 ---
 
-## 1) 로컬 테스트 (배포 전 확인)
-사전 준비: Node.js 설치([nodejs.org](https://nodejs.org)).
+## 구성
+```
+client/                 # Vite + React (UI)
+  src/
+    App.jsx             # 앱바 + 뷰 전환(대시보드/재고) + AI 패널
+    components/
+      Gate.jsx          # 비밀번호 게이트(v1 SHA-256 동작 보존)
+      LegacyDashboard.jsx  # v1 7개 섹션 그대로 렌더(콘텐츠 보존)
+      inventory/Inventory.jsx  # 재고 검색·필터·차트·표
+      assistant/Assistant.jsx  # AI 채팅 패널 (/api/chat 만 호출)
+    legacy/dashboardLegacy.js  # v1 dashboard.html에서 자동 추출(데이터+섹션)
+    theme/apple.css, stage4.css
+server/
+  index.js              # /api/health, /api/inventory, /api/chat, (prod)정적 서빙
+  rag.js                # 재고 검색(코드/바코드/이름/빈티지) → 컨텍스트
+  prompt.js             # AI 규칙(존댓말·데이터근거·도매가 플로어)
+scripts/
+  import-data.mjs       # 엑셀 → data/inventory.json
+  gen-legacy.mjs        # v1 dashboard.html → legacy 모듈 재생성
+data/
+  source/               # (gitignore) 재고표 엑셀 투입 위치
+  inventory.json        # (gitignore) 변환 결과
+dashboard.html, build.js, dist/  # v1 정적 버전(참고용, main 브랜치)
+```
+
+## 로컬 실행
+사전: Node.js 18+ 설치.
 
 ```bash
-# 프로젝트 폴더에서
-npm run build        # dist/index.html 생성
-npx serve dist       # http://localhost:3000 으로 미리보기 (Ctrl+C 종료)
-```
-- `dist/index.html`을 그냥 **더블클릭**해도 동일하게 열립니다(파일 단독 동작).
+# 1) 의존성
+npm install
 
----
+# 2) 환경변수 — 키 입력
+cp .env.example .env
+#   .env 의 ANTHROPIC_API_KEY 에 Claude API 키 입력 (서버 전용, git 제외)
 
-## 2) 공유 URL 만들기 — 배포 명령어
+# 3) 재고 데이터 생성 (엑셀 → JSON)
+#   data/source/ 에 재고표(.xls/.xlsx)를 넣거나 경로를 직접 지정
+npm run import-data
+#   또는: npm run import-data -- "C:\경로\재고표.XLS"
 
-### A. Vercel (권장, 무료)
-```bash
-npm i -g vercel          # 최초 1회 (또는 npx vercel 사용)
-vercel login             # 이메일/깃 로그인
-vercel --prod            # 배포 → 공유 URL 출력 (예: https://yeongup-on-dashboard.vercel.app)
-```
-> `vercel.json`이 빌드(`npm run build`) 후 `dist`를 게시하도록 설정되어 있습니다.
-> 또는 `dist`만 바로 배포: `cd dist && vercel --prod`
+# 4) 개발 모드 (프론트 5173 + 백엔드 3001, /api 프록시)
+npm run dev
+#   → http://localhost:5173
 
-### B. Netlify (무료)
-```bash
-npm i -g netlify-cli     # 최초 1회 (또는 npx netlify-cli 사용)
-netlify login
-npm run build
-netlify deploy --dir=dist --prod   # 배포 → 공유 URL 출력
-```
-> 또는 GUI: [app.netlify.com](https://app.netlify.com) → "Add new site" → 폴더 드래그앤드롭으로 `dist` 업로드.
-
-### C. 가장 간단 — 드래그앤드롭 (CLI 불필요)
-1. [app.netlify.com/drop](https://app.netlify.com/drop) 접속
-2. **`dist` 폴더를 통째로 드래그**해서 놓기
-3. 즉시 `https://...netlify.app` 공유 URL 생성 → 대표님·타 부서에 링크 전달
-
-### D. 사내 정적 호스팅
-- `dist/` 폴더를 사내 웹서버(IIS/Nginx/Apache)의 공개 디렉터리에 복사하면 끝.
-
----
-
-## 3) 갱신(데이터 업데이트) 절차
-```bash
-# 1) dashboard.html 에서 수정
-# 2) 빌드
-npm run build
-# 3) 재배포
-vercel --prod            # 또는 netlify deploy --dir=dist --prod
+# 또는 통합 실행 (빌드 후 서버가 UI+API 모두 서빙)
+npm run build && npm run start
+#   → http://localhost:3001
 ```
 
----
+## 데이터 갱신
+재고표 엑셀이 바뀌면 새 파일을 `data/source/`에 넣고(또는 경로 지정) **`npm run import-data`** 만 다시 실행하면
+`data/inventory.json`이 갱신됩니다. 서버 재시작 시 자동 반영됩니다.
 
-## ⚠ 보안 안내 (중요)
-본 대시보드에는 **실제 거래처명·매출·채권 등 내부 정보**가 포함되어 있습니다.
-- Vercel/Netlify 기본 배포 URL은 **링크를 아는 사람은 누구나 접근**할 수 있습니다.
-- **외부 공개가 부담되면** 아래를 권장합니다.
-  - Vercel/Netlify의 **비밀번호 보호 / 접근 제한**(팀·유료 플랜) 기능 사용, 또는
-  - **사내 인트라넷(내부망) 호스팅**만 사용, 또는
-  - URL을 추측 불가하게 두고 **내부에만 공유**.
-- 회사 보안 정책을 우선 확인하시고 배포 대상을 결정하세요.
+## AI 어시스턴트 규칙 (RAG)
+- 질문과 관련된 **실제 재고 행을 먼저 검색**해 그 데이터만 근거로 답합니다.
+- 가격·재고를 **추정/창작하지 않으며**, 데이터에 없으면 **“데이터에 없음”**이라고 답합니다.
+- 견적 초안에서 **제안가가 도매가보다 낮으면 “⚠ 내부 승인 필요”**를 표시합니다(도매가 미정 시 안내).
+- 모든 답변은 **한국어 존댓말**.
+- 모델 기본값 `claude-sonnet-4-6` (`.env`의 `ANTHROPIC_MODEL`로 변경: `claude-opus-4-8` 등).
+
+## 보안
+- `.env`, 원본 엑셀, `inventory.json`, `client/dist/`는 `.gitignore` 처리.
+- 프론트엔드는 `api.anthropic.com`을 **직접 호출하지 않고** 반드시 `/api/chat` 백엔드 프록시를 거칩니다.
+- 빌드 산출물에 API 키·SDK가 포함되지 않음을 확인했습니다.
+
+## 브랜치
+- 본 작업은 **`feat/stage4-ai`** 브랜치. v1 정적 버전은 `main` / `backup/static-v1` / 태그 `static-v1`에 보존.
+
+> v1(정적 단일 HTML) 안내는 `README.v1.md` 참고.
