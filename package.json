@@ -4,6 +4,9 @@
   "version": "4.0.0",
   "type": "module",
   "description": "영업ON본부 통합 대시보드 — Stage 4 (Vite+React + 백엔드 프록시 + 실재고 + AI 어시스턴트)",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "import-data": "node scripts/import-data.mjs",
     "dev": "concurrently -k -n server,web -c blue,magenta \"node server/index.js\" \"vite --config client/vite.config.js\"",
