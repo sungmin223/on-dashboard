@@ -1,1 +1,12 @@
+# 영업ON본부 통합 대시보드 — 배포 URL
+
+## 현재 운영 (Stage 4 · 풀스택: 프론트 + /api 서버리스 + 데모 AI)
+https://yeongup-on-dashboard.vercel.app
+
+- 호스트: Vercel (서버리스 함수 /api/index)
+- 접근: 대시보드 비밀번호 게이트 → 동일 비밀번호로 /api 인증
+- AI: 데모(규칙 기반) 모드. 실제 Claude 전환은 Vercel 환경변수 ANTHROPIC_API_KEY 설정
+- 재고: 932 SKU (data/inventory.json 번들 포함)
+
+## 구버전 (정적 v1, 백엔드 없음)
 https://sungmin223.github.io/on-dashboard/
