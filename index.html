@@ -481,7 +481,13 @@ const yoy = (cur, prev) => {
 /* 표시용: 채널 정렬(도매·소매·업소·호텔·지방) · 본부 월별 누계(1~5) · 회수 진행(추심중) 건수 */
 const CH_ORD = ["도매","소매","업소","호텔","지방"].map(n => CH.find(c => c.ch === n));
 const B_CUMUL = (() => { let a = 0; return B_MONTHLY.map(v => a += v); })();
-const R_INPROG = RECEIVABLES_DATA.filter(r => /추심/.test(r.note)).length; // 비고 '추심' 명시 건수(사실)
+const R_INPROG = RECEIVABLES_DATA.filter(r => /추심/.test(r.note) && !/미추심/.test(r.note)).length; // 추심 진행 건수('미추심 예정' 제외)
+/* 정상/지연 채권 분류 — '신동와인 영업 ON 본부 채권추심_진행현황_보고용.xlsx'(고려신용정보 의뢰) 기준.
+   금액·거래처는 채권현황 - 20260622 원자료 그대로. 추심 파일은 회수상태(지연) 분류 근거로만 사용. */
+const R_DELAY = RECEIVABLES_DATA.filter(r => /추심/.test(r.note) && !/미추심/.test(r.note)); // 추심 진행 9개처
+const R_DELAY_SUM = R_DELAY.reduce((s,r)=>s+r.amt,0);   // 262,573,775
+const R_NORMAL_SUM = R_TOTAL - R_DELAY_SUM;             // 316,445,070
+const R_NORMAL_CNT = R_COUNT - R_DELAY.length;          // 21
 /* 증감 셀 색상 */
 const deltaColor = g => g.up ? "#5fd6a3" : g.down ? "#f08a8a" : "var(--text-3)";
 
@@ -750,8 +756,8 @@ function ReceivableSection() {
   const summary = `
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;">
       ${stat("총 채권 금액", won(R_TOTAL)+"원", "var(--text)", R_COUNT+"개 거래처")}
-      ${stat("정상 채권", EMPTY.noFile, "var(--text-3)", "회수상태 자료 없음")}
-      ${stat("지연 채권", EMPTY.noFile, "var(--text-3)", "회수상태 자료 없음")}
+      ${stat("정상 채권", won(R_NORMAL_SUM)+"원", "#5fd6a3", R_NORMAL_CNT+"개처 · 추심 미진행")}
+      ${stat("지연 채권", won(R_DELAY_SUM)+"원", "#e7c869", R_DELAY.length+"개처 · 추심 진행")}
       ${stat("고위험 거래처", R_HIGHRISK.length+"개처", "#f08a8a", won(R_HIGHRISK_SUM)+"원 · 법적조치 명시")}
       ${stat("회수 진행", R_INPROG+"개처", "#e7c869", "비고 '추심' 명시")}
     </div>`;
@@ -782,7 +788,7 @@ function ReceivableSection() {
       </div>
       <div class="note">
         · 출처 <b>${RECEIVABLES_SRC}</b> · 기준일 <b>${RECEIVABLES_BASE_DATE}</b>. 거래처명·채권금액·미수기간·비고는 원자료 그대로(임의값 없음).<br/>
-        · 요청 컬럼 중 <b>채널·담당자·지연채권(분리)·최근입금일·채권상태·조치 필요 여부</b>는 원자료에 없어 <b>${EMPTY.noFile}</b>. ‘정상/지연 채권 금액’은 회수상태 자료 입수 시 산출.
+        · <b>정상/지연 채권 분류 기준</b>: 신동와인 영업 ON 본부 채권추심_진행현황_보고용.xlsx(고려신용정보㈜ 의뢰). 추심 진행 거래처(${R_DELAY.length}개처)를 지연채권, 그 외(${R_NORMAL_CNT}개처)를 정상채권으로 분류. 금액은 위 채권현황 파일 기준이며 합계는 총 채권(${won(R_TOTAL)}원)과 일치. 추심 성공 회수율 2.48%(회수 6,691,300원) · ‘미추심 예정’ 건은 정상채권에 포함.
       </div>
     </div>`;
   return Section({ num:5, title:"영업ON본부 채권 현황", hint:`총 ${won(R_TOTAL)}원 · ${R_COUNT}개처`, body });
