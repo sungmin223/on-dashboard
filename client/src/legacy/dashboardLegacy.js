@@ -125,20 +125,26 @@ const SRC_ANNUAL  = "2026년 사업계획서 기준 연간 목표.xls";
 const SALES_BASE  = "2026-06-22";
 
 /* 채널 통합: 목표(t0105·tjune=계획서, tann=연간파일) / 실적(m[1~5月]=채널파일, ajune=06요약) /
-   prev=25년 연간 실적(연간파일) / m25[1~5月]=25년 동기 실적(25년 채널 실적 자료 5종) */
+   prev=25년 연간 실적(연간파일) / m25[1~5月]=25년 동기 실적(25년 채널 실적 자료 5종) /
+   j25=25년 6월 실적(6/22까지·25년 채널 실적 자료 5종) · j26=26년 6월 실적(6/23까지·26년 채널 매출 실적 5종) /
+   fjune=26년 6월 예상마감(현재누계+추가예상·'6월 예상 마감 영업ON_2026.06.22(통합).xlsx' 최종 예상마감 열) */
 const CH = [
-  {ch:"호텔", t0105:870000000,   tjune:191000000, tann:2300000000, ajune:229140200, prev:1897678833,
-    m:[199571500,128281300,237705250,253234600,245718100], m25:[95197600,130656050,158007600,195632468,147559486]},
-  {ch:"업소", t0105:427500000,   tjune:114000000, tann:1200000000, ajune:48392600,  prev:855468910,
-    m:[63186700,76708660,107384500,118059500,92500100],     m25:[61645560,63701560,78866890,85511860,84636920]},
-  {ch:"도매", t0105:1137500000,  tjune:281000000, tann:3700000000, ajune:287151018, prev:3678882205,
-    m:[235869750,153838050,232690600,323785600,300569300],   m25:[260617051,308503870,270867840,282039120,372163080]},
-  {ch:"소매", t0105:873000000,   tjune:211000000, tann:3300000000, ajune:56210720,  prev:2445988772,
-    m:[194146980,180586500,167850300,114369290,151804050],   m25:[179813970,240195590,196609772,225338900,99180790]},
-  {ch:"지방", t0105:508000000,   tjune:130000000, tann:1500000000, ajune:38907550,  prev:1359230140,
-    m:[111823430,48612150,101527730,51615200,48709350],      m25:[99350610,111211060,117162290,109608420,153372090]},
+  {ch:"호텔", t0105:870000000,   tjune:191000000, tann:2300000000, ajune:229140200, prev:1897678833, fjune:294140200,
+    m:[199571500,128281300,237705250,253234600,245718100], m25:[95197600,130656050,158007600,195632468,147559486], j25:137476700, j26:260564100},
+  {ch:"업소", t0105:427500000,   tjune:114000000, tann:1200000000, ajune:48392600,  prev:855468910,  fjune:69392600,
+    m:[63186700,76708660,107384500,118059500,92500100],     m25:[61645560,63701560,78866890,85511860,84636920], j25:79544400, j26:50360000},
+  {ch:"도매", t0105:1137500000,  tjune:281000000, tann:3700000000, ajune:287151018, prev:3678882205, fjune:362151018,
+    m:[235869750,153838050,232690600,323785600,300569300],   m25:[260617051,308503870,270867840,282039120,372163080], j25:125616360, j26:334907418},
+  {ch:"소매", t0105:873000000,   tjune:211000000, tann:3300000000, ajune:56210720,  prev:2445988772, fjune:101210720,
+    m:[194146980,180586500,167850300,114369290,151804050],   m25:[179813970,240195590,196609772,225338900,99180790], j25:157043620, j26:58628720},
+  {ch:"지방", t0105:508000000,   tjune:130000000, tann:1500000000, ajune:38907550,  prev:1359230140, fjune:43907550,
+    m:[111823430,48612150,101527730,51615200,48709350],      m25:[99350610,111211060,117162290,109608420,153372090], j25:100317050, j26:41263250},
 ];
-CH.forEach(c => { c.a0105 = c.m.reduce((s,v)=>s+v,0); c.acum = c.a0105 + c.ajune; c.a0105_25 = c.m25.reduce((s,v)=>s+v,0); });
+CH.forEach(c => {
+  c.a0105 = c.m.reduce((s,v)=>s+v,0); c.acum = c.a0105 + c.ajune; c.a0105_25 = c.m25.reduce((s,v)=>s+v,0);
+  c.a0106    = c.a0105 + c.j26;     // 26년 1~6월(6/23까지) 누계 = 채널파일 합계행
+  c.a0106_25 = c.a0105_25 + c.j25;  // 25년 1~6월(6/22까지) 누계 = 25년 채널파일 합계행
+});
 
 /* 본부 파생(자동 산출) */
 const B_0105   = CH.reduce((s,c)=>s+c.a0105,0);   // 3,940,148,490 (채널 합계행 합과 일치)
@@ -146,10 +152,17 @@ const B_JUNE   = CH.reduce((s,c)=>s+c.ajune,0);   // 659,802,088 (06 요약파�
 const B_CUM    = B_0105 + B_JUNE;                  // 4,599,950,578
 const B_PREV25 = CH.reduce((s,c)=>s+c.prev,0);    // 10,237,248,860 (전년 연간)
 const B_0105_25 = CH.reduce((s,c)=>s+c.a0105_25,0); // 4,127,450,447 (전년 동기 01~05)
+/* 1~6월 동기간 비교용(부분월 6월 포함) — 25년 6/22까지 · 26년 6/23까지(채널 실적자료 합계행) */
+const B_J25     = CH.reduce((s,c)=>s+c.j25,0);      // 599,998,130 (25년 6월·6/22)
+const B_J26     = CH.reduce((s,c)=>s+c.j26,0);      // 745,723,488 (26년 6월·6/23)
+const B_0106_25 = CH.reduce((s,c)=>s+c.a0106_25,0); // 4,727,448,577 (25년 1~6월·6/22)
+const B_0106    = CH.reduce((s,c)=>s+c.a0106,0);    // 4,685,871,978 (26년 1~6월·6/23)
 const T_0105   = CH.reduce((s,c)=>s+c.t0105,0);   // 3,816,000,000 (계획서 01~05 목표)
 const T_JUNE   = CH.reduce((s,c)=>s+c.tjune,0);   // 927,000,000 (계획서 06월 목표)
 const T_ANNUAL = CH.reduce((s,c)=>s+c.tann,0);    // 12,000,000,000 (연간파일 목표)
-const JUNE_FORECAST = 851802088;                  // 06 예상마감(요약파일 제공값)
+const B_FJUNE  = CH.reduce((s,c)=>s+c.fjune,0);   // 870,802,088 (채널별 06 예상마감 합)
+const JUNE_FORECAST = B_FJUNE;                    // 06 예상마감 = 현재누계 659,802,088 + 추가예상 211,000,000 ('6월 예상 마감…06.22(통합)' 최종 예상마감)
+const JUNE_FC_REMAIN = T_JUNE - JUNE_FORECAST;    // 56,197,912 (예상마감 기준 06월 목표 부족분 = 파일 '부족 매출')
 const JUNE_REMAIN   = T_JUNE - B_JUNE;            // 267,197,912 (현재 기준 잔여 목표)
 /* 본부 월별 실적(1~5月) = 채널 m 합 */
 const B_MONTHLY = [0,1,2,3,4].map(i => CH.reduce((s,c)=>s+c.m[i],0));
@@ -779,7 +792,7 @@ function KpiSection() {
     KpiCard({ label: "01~05 누계 매출 (2026)", icon: "💰", value: won(B_0105), unit:"원", foot: "본부 전체 5채널", tone: "ok" }),
     KpiCard({ label: "2026 연간 목표",          icon: "🎯", value: won(T_ANNUAL), unit:"원", foot: "사업계획서 기준", tone: "ok" }),
     KpiCard({ label: "연간 목표 대비 달성률",    icon: "📈", value: rate1(B_CUM,T_ANNUAL), foot: `누계 ${won(B_CUM)}원 (1~6/22)`, tone: "ok" }),
-    KpiCard({ label: "06월 현재 실적 (6/22)",   icon: "🗓", value: won(B_JUNE), unit:"원", foot: `목표 대비 ${rate1(B_JUNE,T_JUNE)}`, tone: "ok" }),
+    KpiCard({ label: "06월 현재 실적 (6/22)",   icon: "🗓", value: won(B_JUNE), unit:"원", foot: `현재 ${rate1(B_JUNE,T_JUNE)} · 예상마감 ${won(JUNE_FORECAST)}원(${rate1(JUNE_FORECAST,T_JUNE)})`, tone: "ok" }),
     KpiCard({ label: "총 채권 금액",            icon: "📑", value: won(R_TOTAL), unit:"원", foot: `${R_COUNT}개 거래처`, tone: "ok" }),
     KpiCard({ label: "조치 필요 거래처",        icon: "⚠", value: String(R_HIGHRISK.length), unit:"개처", foot: `법적조치 명시 · 추심 ${R_INPROG}곳`, tone: "danger" }),
   ].join("");
@@ -790,11 +803,12 @@ function KpiSection() {
   });
 }
 
-/* 2. 2025년 대비 2026년 매출 비교 (01~05 동기) — 실데이터(25·26 채널 실적자료) */
+/* 2. 2025년 대비 2026년 매출 비교 (01~06월 동기간·6월 포함) — 실데이터(25·26 채널 실적자료) */
 function ComparisonSection() {
   const dAmt = g => `<span style="color:${deltaColor(g)};">${g.delta>=0?"+":"△"}${won(Math.abs(g.delta))}</span>`;
-  const row = (name, a26, a25, strong) => {
-    const g = yoy(a26, a25);
+  /* 1~6월 동기간 비교(부분월 6월 포함) — 25년 6/22까지 vs 26년 6/23까지 (채널 실적자료 합계행) · 채널 행 클릭 시 거래처 드릴다운 */
+  const row6 = (name, a26, a25, j26, j25, strong) => {
+    const g = yoy(a26, a25), gj = yoy(j26, j25);
     const clickable = !strong && CH_CUST[name];   // 채널 행만 클릭(거래처 드릴다운)
     return `<tr${strong
         ? ' style="border-top:2px solid var(--border);background:var(--surface-2);"'
@@ -804,6 +818,8 @@ function ComparisonSection() {
       <td style="text-align:right;color:var(--text);font-weight:${strong?700:400};">${won(a26)}</td>
       <td style="text-align:right;">${dAmt(g)}</td>
       <td style="text-align:right;"><b style="color:${deltaColor(g)};">${g.pct}</b></td>
+      <td style="text-align:right;color:var(--text-3);">${won(j25)} → ${won(j26)}</td>
+      <td style="text-align:right;"><b style="color:${deltaColor(gj)};">${gj.pct}</b></td>
       <td style="color:var(--text-3);">${clickable?'클릭 → 거래처별 상세':'—'}</td>
     </tr>`;
   };
@@ -812,23 +828,29 @@ function ComparisonSection() {
       <div class="table-wrap">
         <table class="tbl">
           <thead><tr>
-            <th>구분</th>
-            <th style="text-align:right;">2025년 01~05 매출</th>
-            <th style="text-align:right;">2026년 01~05 매출</th>
+            <th rowspan="2" style="vertical-align:bottom;">구분</th>
+            <th colspan="4" style="text-align:center;border-bottom:1px solid var(--border);">1~6월 동기간 누계(부분월 6월 포함)</th>
+            <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border);">6월 단독(부분월)</th>
+            <th rowspan="2" style="vertical-align:bottom;">비고</th>
+          </tr>
+          <tr>
+            <th style="text-align:right;">2025년<br/><span class="note" style="font-weight:500;">(~6/22)</span></th>
+            <th style="text-align:right;">2026년<br/><span class="note" style="font-weight:500;">(~6/23)</span></th>
             <th style="text-align:right;">증감액</th>
             <th style="text-align:right;">증감률</th>
-            <th>비고</th>
+            <th style="text-align:right;">25년→26년<br/><span class="note" style="font-weight:500;">(6/22→6/23)</span></th>
+            <th style="text-align:right;">증감률</th>
           </tr></thead>
           <tbody>
-            ${row("영업ON본부 전체", B_0105, B_0105_25, true)}
-            ${CH_ORD.map(c=>row(c.ch, c.a0105, c.a0105_25, false)).join("")}
+            ${row6("영업ON본부 전체", B_0106, B_0106_25, B_J26, B_J25, true)}
+            ${CH_ORD.map(c=>row6(c.ch, c.a0106, c.a0106_25, c.j26, c.j25, false)).join("")}
           </tbody>
         </table>
       </div>
       <div id="drill" class="drill"></div>
-      <div class="note">· 2025년 = 25년 채널 실적자료 5종(01~05 동기) · 2026년 = 26년 매출자료. 증감률=(26−25)÷25×100(소수1자리). 금액 음수 △ · 증감률 ▲증가/▼감소(validation §8-1·8-4). 06월은 부분월이라 비교 제외.<br/>· <b>채널 행(도매·소매·업소·호텔·지방)을 클릭</b>하면 해당 채널의 거래처별 매출 상세가 펼쳐지고 거래처명 검색이 가능합니다.</div>
+      <div class="note">· 출처 = <b>25년 채널 실적자료 5종(1~6/22)</b> · <b>26년 채널 매출실적 5종(1~6/23)</b> 각 파일 합계행(거래처 전건 합과 일치 검증). 6월은 양 연도 모두 부분월(25년 6/22까지·26년 6/23까지)이라 단순 동기간 비교이며 월 마감치가 아님. 증감률=(26−25)÷25×100(소수1자리). 금액 음수 △ · 증감률 ▲증가/▼감소(validation §8-1·8-4).<br/>· <b>채널 행(도매·소매·업소·호텔·지방)을 클릭</b>하면 거래처별 매출 상세가 펼쳐집니다(거래처 누계는 1~5월 기준 · 06월은 부분월이라 거래처 드릴다운에서 제외). 본 표의 26년 6월(${won(B_J26)}원)은 채널 매출실적 파일 기준으로 ④의 06월 요약값(${won(B_JUNE)}원·06요약파일)과 출처가 달라 수치가 다를 수 있음.</div>
     </div>`;
-  return Section({ num:2, title:"2025년 대비 2026년 영업ON본부 매출 비교", hint:"01~05 동기 · 클릭 시 거래처 상세", body });
+  return Section({ num:2, title:"2025년 대비 2026년 영업ON본부 매출 비교", hint:"01~06월 동기간(6월 포함) · 클릭 시 거래처 상세", body });
 }
 
 /* 3. 2026년 01월~05월 월별 매출 현황 — 본부+채널 월별·전월비·누계 (실데이터) */
@@ -881,49 +903,61 @@ function MonthlySection() {
 /* 4. 2026년 목표 대비 달성 현황 — 실적·목표·달성률 통합 1표 */
 function TargetSection() {
   const risk = r => { const v=parseFloat(r); return v>=100?["ok","정상"]:v>=50?["warn","주의"]:["danger","위험"]; };
-  const dCell = (a,t) => { const d=a-t; return `<span style="color:${d>=0?'#248a3d':'#d70015'};">${d>=0?"+":"△"}${won(Math.abs(d))}</span>`; };
-  const row = (name,tann,tjune,ajune,acum,strong) => {
-    const ar=rate1(ajune,tjune), cr=rate1(acum,tann), rk=risk(ar);
+  const row = (name,prev,tann,tjune,ajune,fjune,j25,acum,strong) => {
+    const fr=rate1(fjune,tjune), cr=rate1(acum,tann), rk=risk(fr);
+    const gy=yoy(tann,prev), gj=yoy(fjune,j25);   // 연간목표 전년比 · 06월 예상마감 전년동월比
     return `<tr${strong?' style="border-top:2px solid var(--border);background:var(--surface-2);"':''}>
       <td style="font-weight:${strong?700:600};color:var(--text);white-space:nowrap;">${name}</td>
+      <td style="text-align:right;color:var(--text-3);">${won(prev)}</td>
       <td style="text-align:right;color:var(--text-3);">${won(tann)}</td>
+      <td style="text-align:right;"><b style="color:var(--text-2);">${cr}</b></td>
       <td style="text-align:right;">${won(tjune)}</td>
       <td style="text-align:right;color:var(--text);font-weight:${strong?700:400};">${won(ajune)}</td>
-      <td style="text-align:right;">${dCell(ajune,tjune)}</td>
-      <td style="text-align:right;"><b style="color:${parseFloat(ar)>=100?'#248a3d':'var(--accent)'};">${ar}</b></td>
-      <td style="text-align:right;"><b style="color:var(--text-2);">${cr}</b></td>
+      <td style="text-align:right;color:var(--text);font-weight:${strong?700:600};">${won(fjune)}</td>
+      <td style="text-align:right;"><b style="color:${parseFloat(fr)>=100?'#248a3d':'var(--accent)'};">${fr}</b></td>
+      <td style="text-align:right;color:var(--text-3);">${won(j25)}</td>
+      <td style="text-align:right;"><b style="color:${deltaColor(gj)};">${gj.pct}</b></td>
       <td>${StatusBadge(rk[0],rk[1])}</td>
-      <td style="color:var(--text-3);">${EMPTY.noFile}</td>
     </tr>`;
   };
   const body = `
     <div class="card card-pad">
       <div class="table-wrap">
         <table class="tbl">
-          <thead><tr>
-            <th>구분</th>
-            <th style="text-align:right;">2026 연간 목표</th>
-            <th style="text-align:right;">06월 목표</th>
-            <th style="text-align:right;">06월 현재 실적</th>
-            <th style="text-align:right;">목표 대비 차이</th>
-            <th style="text-align:right;">달성률(06월)</th>
-            <th style="text-align:right;">연간 누계 달성률</th>
-            <th>리스크 요인</th>
-            <th>필요 조치</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th rowspan="2" style="vertical-align:bottom;">구분</th>
+              <th colspan="3" style="text-align:center;border-bottom:1px solid var(--border);">연간</th>
+              <th colspan="4" style="text-align:center;border-bottom:1px solid var(--border);">06월(당월)</th>
+              <th colspan="2" style="text-align:center;border-bottom:1px solid var(--border);">전년 동월(2025년 6월)</th>
+              <th rowspan="2" style="vertical-align:bottom;">리스크 요인</th>
+            </tr>
+            <tr>
+              <th style="text-align:right;">2025년 실적</th>
+              <th style="text-align:right;">2026년 목표</th>
+              <th style="text-align:right;">누계 달성률</th>
+              <th style="text-align:right;">06월 목표</th>
+              <th style="text-align:right;">현재 실적<br/><span class="note" style="font-weight:500;">(6/22)</span></th>
+              <th style="text-align:right;">06월 예상 마감</th>
+              <th style="text-align:right;">예상 달성률</th>
+              <th style="text-align:right;">25년 6월 실적<br/><span class="note" style="font-weight:500;">(~6/22)</span></th>
+              <th style="text-align:right;">전년比<br/><span class="note" style="font-weight:500;">(예상마감)</span></th>
+            </tr>
+          </thead>
           <tbody>
-            ${row("영업ON본부 전체", T_ANNUAL, T_JUNE, B_JUNE, B_CUM, true)}
-            ${CH_ORD.map(c=>row(c.ch, c.tann, c.tjune, c.ajune, c.acum, false)).join("")}
+            ${row("영업ON본부 전체", B_PREV25, T_ANNUAL, T_JUNE, B_JUNE, B_FJUNE, B_J25, B_CUM, true)}
+            ${CH_ORD.map(c=>row(c.ch, c.prev, c.tann, c.tjune, c.ajune, c.fjune, c.j25, c.acum, false)).join("")}
           </tbody>
         </table>
       </div>
       <div class="note">
-        · 목표=계획서(06월)·연간목표파일(연간, 도매3.7B/소매3.3B) · 06월 실적=마감예상 요약파일(6/22). 06월 <b>예상 마감 ${won(JUNE_FORECAST)}원(${rate1(JUNE_FORECAST,T_JUNE)})</b> · 잔여 목표 ${won(JUNE_REMAIN)}원.<br/>
-        · 달성률=실적÷목표×100(소수1자리). <b>리스크 요인</b>=06월 달성률 기준 자동(100%↑ 정상 / 50~100 주의 / 50%↓ 위험). <b>필요 조치</b>는 입력자료 없음 → <b>${EMPTY.noFile}</b>(임의 생성 안 함).<br/>
-        · 본부 06월 달성 ${rate1(B_JUNE,T_JUNE)} · 연간 누계 달성 ${rate1(B_CUM,T_ANNUAL)} · 전년(25년 연간 ${won(B_PREV25)}원) 대비 26 목표 성장률 +${((T_ANNUAL/B_PREV25-1)*100).toFixed(1)}%.
+        · 목표=계획서(06월)·연간목표파일(연간, 도매3.7B/소매3.3B) · 06월 현재 실적=마감예상 요약파일(6/22 누계). <b>06월 예상 마감 = 6/22 현재 누계(${won(B_JUNE)}원) + 추가 예상(${won(T_JUNE-B_JUNE-JUNE_FC_REMAIN)}원) = ${won(JUNE_FORECAST)}원(예상 달성률 ${rate1(JUNE_FORECAST,T_JUNE)})</b> · 목표 부족분 ${won(JUNE_FC_REMAIN)}원. 출처='6월 예상 마감 영업ON_2026.06.22(통합).xlsx' 최종 예상마감 열.<br/>
+        · <b>전년 비교</b>: 2025년 연간 실적·25년 6월 실적(6/22까지)은 25년 채널 실적자료 5종 기준. <b>전년比(예상마감)</b>=(26년 06월 예상마감 − 25년 6월)÷25년 6월×100. 본부 06월 예상마감 전년동월比 <b>${yoy(B_FJUNE,B_J25).pct}</b>(25년 6월 ${won(B_J25)}원 → 26년 예상 ${won(B_FJUNE)}원).<br/>
+        · 달성률=실적(또는 예상마감)÷목표×100(소수1자리). <b>리스크 요인</b>=<b>예상 달성률</b> 기준 자동(100%↑ 정상 / 50~100 주의 / 50%↓ 위험). 06월 현재 실적은 부분월(6/22)이라 단독 달성률이 낮아 판정에서 제외 → 예상마감 기준 판정.<br/>
+        · 본부 06월 예상 달성 ${rate1(JUNE_FORECAST,T_JUNE)}(현재 ${rate1(B_JUNE,T_JUNE)}) · 연간 누계 달성 ${rate1(B_CUM,T_ANNUAL)} · 전년(25년 연간 ${won(B_PREV25)}원) 대비 26 연간목표 성장률 +${((T_ANNUAL/B_PREV25-1)*100).toFixed(1)}%.
       </div>
     </div>`;
-  return Section({ num:4, title:"2026년 목표 대비 달성 현황", hint:"목표·실적·달성률 통합", body });
+  return Section({ num:4, title:"2026년 목표 대비 달성 현황", hint:"연간·06월 예상마감·전년 동월비 통합", body });
 }
 
 /* 5. 채권 현황 — S3 receivables (실데이터). 요약 카드 + 상세표 */
@@ -1049,7 +1083,7 @@ function SummarySection() {
     ["2025년 대비 비교 자료 상태", "ok","연결완료",
       `25년 5채널 실적 연결 · 본부 전년 동기 ${won(B_0105_25)}원 대비 ${gB.pct}`],
     ["2026년 목표 대비 달성 현황", "ok","실데이터",
-      `06월 달성 ${rate1(B_JUNE,T_JUNE)}(실적 ${won(B_JUNE)}/목표 ${won(T_JUNE)}) · 연간 누계 ${rate1(B_CUM,T_ANNUAL)}`],
+      `06월 현재 ${rate1(B_JUNE,T_JUNE)}(${won(B_JUNE)}/목표 ${won(T_JUNE)}) · 예상마감 ${won(JUNE_FORECAST)}원(${rate1(JUNE_FORECAST,T_JUNE)}) · 연간 누계 ${rate1(B_CUM,T_ANNUAL)}`],
     ["주요 채권 리스크", "warn","주의",
       `총 ${won(R_TOTAL)}원 · ${R_COUNT}개처 · 법적조치 고위험 ${R_HIGHRISK.length}곳(${won(R_HIGHRISK_SUM)}원) · 정상/지연 분류 ${EMPTY.noFile}`],
     ["API 연동 예정 영역", "warn",EMPTY.needApi,
