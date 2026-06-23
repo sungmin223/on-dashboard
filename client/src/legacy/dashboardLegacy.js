@@ -180,6 +180,8 @@ const yoy = (cur, prev) => {
 
 /* 표시용: 채널 정렬(도매·소매·업소·호텔·지방) · 본부 월별 누계(1~5) · 회수 진행(추심중) 건수 */
 const CH_ORD = ["도매","소매","업소","호텔","지방"].map(n => CH.find(c => c.ch === n));
+/* 보고서 표시 순서(§2 비교·§4 목표대비) — 호텔·업소·도매·소매·지방 */
+const CH_ORD_RPT = ["호텔","업소","도매","소매","지방"].map(n => CH.find(c => c.ch === n));
 const B_CUMUL = (() => { let a = 0; return B_MONTHLY.map(v => a += v); })();
 const R_INPROG = RECEIVABLES_DATA.filter(r => /추심/.test(r.note) && !/미추심/.test(r.note)).length; // 추심 진행 건수('미추심 예정' 제외)
 /* 정상/지연 채권 분류 — '신동와인 영업 ON 본부 채권추심_진행현황_보고용.xlsx'(고려신용정보 의뢰) 기준.
@@ -843,7 +845,7 @@ function ComparisonSection() {
           </tr></thead>
           <tbody>
             ${row6("영업ON본부 전체", B_0106, B_0106_25, B_J26, B_J25, true)}
-            ${CH_ORD.map(c=>row6(c.ch, c.a0106, c.a0106_25, c.j26, c.j25, false)).join("")}
+            ${CH_ORD_RPT.map(c=>row6(c.ch, c.a0106, c.a0106_25, c.j26, c.j25, false)).join("")}
           </tbody>
         </table>
       </div>
@@ -946,7 +948,7 @@ function TargetSection() {
           </thead>
           <tbody>
             ${row("영업ON본부 전체", B_PREV25, T_ANNUAL, T_JUNE, B_JUNE, B_FJUNE, B_J25, B_CUM, true)}
-            ${CH_ORD.map(c=>row(c.ch, c.prev, c.tann, c.tjune, c.ajune, c.fjune, c.j25, c.acum, false)).join("")}
+            ${CH_ORD_RPT.map(c=>row(c.ch, c.prev, c.tann, c.tjune, c.ajune, c.fjune, c.j25, c.acum, false)).join("")}
           </tbody>
         </table>
       </div>
