@@ -40,21 +40,31 @@ export default function Home({ onGo }) {
   if (err) return <div className="s-wrap"><Card>{err}</Card></div>;
   if (!data) return <div className="s-wrap"><Card>영업 데이터 불러오는 중…</Card></div>;
   const s = summary;
-  const sample = (data._meta?.note || "").includes("샘플");
+  const sources = data._meta?.sources || {};
+  const anySample = data._meta?.anySample ?? true;
+  const LABELS = { accounts: "거래처", deliveries: "납품", pairings: "페어링", regions: "지역선호" };
+  const sampleList = Object.entries(sources).filter(([, v]) => v === "샘플").map(([k]) => LABELS[k] || k);
 
   return (
     <div className="s-wrap">
       <div className="s-head">
         <h2>영업 인텔리전스 홈</h2>
         <span className="s-sub">
-          {sample && <span className="badge b-sample">샘플 데이터</span>}
+          {anySample
+            ? <span className="badge b-sample">샘플 포함</span>
+            : <span className="badge b-real">운영 데이터</span>}
           거래처 {s.accounts.length} · 납품 {s.deliveries.length} · 페어링 {s.pairings.length} · 지역선호 {s.regions.length}
         </span>
       </div>
 
       <ReasonNote>
-        거래처·납품·페어링·지역선호는 현재 <b>샘플</b>입니다. 각 모듈 상단의 업로드로 실제 CSV를 올리면 즉시 교체됩니다.
-        제품/재고는 실데이터(932 SKU)입니다.
+        {anySample ? (
+          <>아직 <b>샘플</b>인 데이터: <b>{sampleList.join(" · ") || "없음"}</b>.
+          {" "}<code>data/real/&lt;파일&gt;.csv</code> 에 실데이터를 기입 후 <code>npm run deploy:sales</code> 로 운영 반영하세요.</>
+        ) : (
+          <>모든 영업 데이터가 <b>운영 실데이터</b>입니다.</>
+        )}
+        {" "}제품/재고는 실데이터(932 SKU).
       </ReasonNote>
 
       {/* KPI */}

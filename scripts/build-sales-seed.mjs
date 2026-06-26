@@ -10,7 +10,8 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const SAMPLES = path.join(ROOT, "data", "samples");
+const REAL = path.join(ROOT, "data", "real");        // 운영 실데이터(최우선)
+const SAMPLES = path.join(ROOT, "data", "samples");  // 샘플(폴백)
 const INV = path.join(ROOT, "data", "inventory.json");
 const OUT = path.join(ROOT, "data", "sales-seed.json");
 
@@ -43,16 +44,21 @@ function toObjects(rows) {
     return o;
   });
 }
+/* 우선순위: data/real/<name>.csv(운영) → data/samples/<name>.csv(업로드) → *.sample.csv(샘플).
+   헤더만 있고 데이터 행이 0개면 건너뛰고 다음 후보로 폴백(빈 운영파일이 샘플을 가리지 않게). */
 function readCSV(name) {
-  const candidates = [path.join(SAMPLES, name + ".csv"), path.join(SAMPLES, name + ".sample.csv")];
-  for (const f of candidates) {
-    if (fs.existsSync(f)) {
-      const isSample = f.endsWith(".sample.csv");
-      const objs = toObjects(parseCSV(fs.readFileSync(f, "utf8")));
-      return objs.map((o) => ({ ...o, _sample: isSample, _source: isSample ? "샘플" : "업로드" }));
-    }
+  const candidates = [
+    { f: path.join(REAL, name + ".csv"), source: "운영", sample: false },
+    { f: path.join(SAMPLES, name + ".csv"), source: "업로드", sample: false },
+    { f: path.join(SAMPLES, name + ".sample.csv"), source: "샘플", sample: true },
+  ];
+  for (const c of candidates) {
+    if (!fs.existsSync(c.f)) continue;
+    const objs = toObjects(parseCSV(fs.readFileSync(c.f, "utf8")));
+    if (!objs.length) continue;
+    return { rows: objs.map((o) => ({ ...o, _sample: c.sample, _source: c.source })), source: c.source };
   }
-  return [];
+  return { rows: [], source: "없음" };
 }
 
 /* --- 제품마스터: inventory → 포트폴리오 카테고리/키워드 --- */
@@ -110,32 +116,36 @@ function buildProductMaster() {
 }
 
 function main() {
-  const accounts = readCSV("거래처마스터");
-  const deliveries = readCSV("납품이력");
-  const pairings = readCSV("페어링리스트");
-  const regions = readCSV("지역선호도");
+  const a = readCSV("거래처마스터");
+  const d = readCSV("납품이력");
+  const p = readCSV("페어링리스트");
+  const r = readCSV("지역선호도");
   const productMaster = buildProductMaster();
+
+  const sources = { accounts: a.source, deliveries: d.source, pairings: p.source, regions: r.source };
+  const anySample = Object.values(sources).some((s) => s === "샘플");
+  const allReal = Object.values(sources).every((s) => s === "운영" || s === "업로드");
 
   const seed = {
     _meta: {
       generatedAt: new Date().toISOString(),
-      note: "거래처/납품/페어링/지역선호는 샘플(_sample=true). 제품마스터는 inventory.json(실재고) 기반.",
+      sources,                                   // 데이터셋별 출처(운영/업로드/샘플/없음)
+      anySample, allReal,
+      note: anySample
+        ? "일부/전체가 샘플 데이터입니다. data/real/<파일>.csv 로 교체 후 npm run build:sales 하세요."
+        : "운영 데이터(실파일) 기반 시드입니다. 제품마스터는 inventory.json(실재고).",
       counts: {
-        accounts: accounts.length,
-        deliveries: deliveries.length,
-        pairings: pairings.length,
-        regions: regions.length,
+        accounts: a.rows.length, deliveries: d.rows.length,
+        pairings: p.rows.length, regions: r.rows.length,
         products: productMaster.products.length,
       },
     },
-    accounts,
-    deliveries,
-    pairings,
-    regions,
+    accounts: a.rows, deliveries: d.rows, pairings: p.rows, regions: r.rows,
     productMaster,
   };
   fs.writeFileSync(OUT, JSON.stringify(seed));
   console.log("[build:sales] →", OUT);
-  console.log("  ", JSON.stringify(seed._meta.counts));
+  console.log("   출처:", JSON.stringify(sources));
+  console.log("   건수:", JSON.stringify(seed._meta.counts));
 }
 main();

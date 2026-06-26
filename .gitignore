@@ -23,6 +23,8 @@ client/dist/
 data/inventory.json
 # 영업 시드(제품 단가 포함) — npm run build:sales 로 로컬 생성, Vercel 번들엔 포함
 data/sales-seed.json
+# 운영 실데이터 CSV(거래처/납품/페어링/지역선호) — 로컬에서만, 빈양식/README만 저장소 포함
+data/real/*.csv
 data/source/*
 !data/source/.gitkeep
 

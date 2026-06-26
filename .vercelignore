@@ -9,8 +9,11 @@ client/dist
 .env.local
 .env.*.local
 
-# 원본 엑셀 등 런타임 불필요
+# 원본 엑셀/입력 CSV 등 런타임 불필요 (배포본은 sales-seed.json 만 사용)
+# ⚠ Vercel CLI 는 .gitignore 가 아닌 이 파일을 따르므로, 실데이터 CSV 업로드 방지를 위해 반드시 제외
 data/source
+data/real
+data/samples
 
 # 로컬 백업/임시 산출물
 dashboard_backup_*.html
