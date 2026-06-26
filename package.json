@@ -9,6 +9,7 @@
   },
   "scripts": {
     "import-data": "node scripts/import-data.mjs",
+    "build:sales": "node scripts/build-sales-seed.mjs",
     "dev": "concurrently -k -n server,web -c blue,magenta \"node server/index.js\" \"vite --config client/vite.config.js\"",
     "build": "vite build --config client/vite.config.js",
     "start": "node server/index.js",

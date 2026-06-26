@@ -21,6 +21,8 @@ client/dist/
 
 # 실데이터(내부 단가/재고 보호) — npm run import-data 로 로컬 생성
 data/inventory.json
+# 영업 시드(제품 단가 포함) — npm run build:sales 로 로컬 생성, Vercel 번들엔 포함
+data/sales-seed.json
 data/source/*
 !data/source/.gitkeep
 

@@ -6,7 +6,7 @@
   "trailingSlash": false,
   "functions": {
     "api/index.js": {
-      "includeFiles": "data/inventory.json"
+      "includeFiles": "data/*.json"
     }
   },
   "rewrites": [

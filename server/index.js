@@ -17,6 +17,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { retrieve, getInventory, loadInventory } from "./rag.js";
 import { buildSystemPrompt } from "./prompt.js";
 import { demoAnswer } from "./demoAnswer.js";
+import { getSales, loadSales } from "./sales.js";
 
 dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -56,6 +57,11 @@ app.get("/api/health", (_req, res) => {
 /* 재고 데이터 — 사내 전용(프론트 검색/필터/차트). 가격 포함 → 인증 필수. */
 app.get("/api/inventory", requireAccess, (_req, res) => {
   res.json(getInventory());
+});
+
+/* 영업 인텔리전스 시드(거래처/납품/페어링/지역선호 + 제품마스터). 단가 포함 → 인증 필수. */
+app.get("/api/sales", requireAccess, (_req, res) => {
+  res.json(getSales());
 });
 
 /* AI 어시스턴트 — 인증 필수 */
