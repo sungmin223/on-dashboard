@@ -11,11 +11,8 @@ export default function Pairing() {
   const { data, err } = useSales();
   const [acc, setAcc] = useState("");
 
-  if (err) return <div className="s-wrap"><Card>{err}</Card></div>;
-  if (!data) return <div className="s-wrap"><Card>영업 데이터 불러오는 중…</Card></div>;
-
-  const pairings = data.pairings || [];
-  const products = data.productMaster?.products || [];
+  const pairings = data?.pairings || [];
+  const products = data?.productMaster?.products || [];
 
   // 거래처 목록(페어링 보유)
   const accs = useMemo(() => {
@@ -39,6 +36,9 @@ export default function Pairing() {
   }, [rows]);
 
   const insights = useMemo(() => pairingInsights(rows, products), [rows, products]);
+
+  if (err) return <div className="s-wrap"><Card>{err}</Card></div>;
+  if (!data) return <div className="s-wrap"><Card>영업 데이터 불러오는 중…</Card></div>;
 
   return (
     <div className="s-wrap">

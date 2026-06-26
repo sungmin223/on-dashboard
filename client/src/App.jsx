@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useState } from "react";
 import Gate from "./components/Gate.jsx";
 import LegacyDashboard from "./components/LegacyDashboard.jsx";
 import Assistant from "./components/assistant/Assistant.jsx";
+import ErrorBoundary from "./components/sales/ErrorBoundary.jsx";
 
 // 무거운 모듈(차트/데이터)은 필요할 때만 로드 → 초기 번들 경량화
 const Inventory = lazy(() => import("./components/inventory/Inventory.jsx"));
@@ -65,15 +66,17 @@ export default function App() {
 
       <div className="layout">
         <main className="main-col">
-          <Suspense fallback={fallback}>
-            {view === "home" && <Home onGo={setView} />}
-            {view === "route" && <RoutePlan />}
-            {view === "pairing" && <Pairing />}
-            {view === "region" && <Region />}
-            {view === "portfolio" && <Portfolio />}
-            {view === "inventory" && <Inventory />}
-            {view === "validate" && <Validate />}
-          </Suspense>
+          <ErrorBoundary resetKey={view}>
+            <Suspense fallback={fallback}>
+              {view === "home" && <Home onGo={setView} />}
+              {view === "route" && <RoutePlan />}
+              {view === "pairing" && <Pairing />}
+              {view === "region" && <Region />}
+              {view === "portfolio" && <Portfolio />}
+              {view === "inventory" && <Inventory />}
+              {view === "validate" && <Validate />}
+            </Suspense>
+          </ErrorBoundary>
         </main>
         {aiOpen && (
           <aside className="ai-col">

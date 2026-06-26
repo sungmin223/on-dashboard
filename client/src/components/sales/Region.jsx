@@ -12,11 +12,8 @@ export default function Region() {
   const [type, setType] = useState("");
   const [conf, setConf] = useState("");
 
-  if (err) return <div className="s-wrap"><Card>{err}</Card></div>;
-  if (!data) return <div className="s-wrap"><Card>영업 데이터 불러오는 중…</Card></div>;
-
-  const regions = data.regions || [];
-  const products = data.productMaster?.products || [];
+  const regions = data?.regions || [];
+  const products = data?.productMaster?.products || [];
 
   const areas = [...new Set(regions.map((r) => r.대권역).filter(Boolean))];
   const types = [...new Set(regions.map((r) => r.업장타입).filter(Boolean))];
@@ -34,6 +31,9 @@ export default function Region() {
     regions.forEach((r) => { const g = String(r.신뢰도).toUpperCase(); if (m[g] != null) m[g]++; });
     return m;
   }, [regions]);
+
+  if (err) return <div className="s-wrap"><Card>{err}</Card></div>;
+  if (!data) return <div className="s-wrap"><Card>영업 데이터 불러오는 중…</Card></div>;
 
   return (
     <div className="s-wrap">

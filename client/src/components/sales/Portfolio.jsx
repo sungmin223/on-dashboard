@@ -16,12 +16,9 @@ export default function Portfolio() {
   const [sort, setSort] = useState("recent");    // recent | sales | qty | importance
   const [selected, setSelected] = useState(null);
 
-  if (err) return <div className="s-wrap"><Card>{err}</Card></div>;
-  if (!data) return <div className="s-wrap"><Card>영업 데이터 불러오는 중…</Card></div>;
-
-  const products = data.productMaster?.products || [];
-  const accounts = data.accounts || [];
-  const deliveries = data.deliveries || [];
+  const products = data?.productMaster?.products || [];
+  const accounts = data?.accounts || [];
+  const deliveries = data?.deliveries || [];
   const accById = Object.fromEntries(accounts.map((a) => [a.account_id, a]));
 
   const cats = [...new Set(products.map((p) => p.포트폴리오카테고리).filter(Boolean))].sort();
@@ -79,6 +76,9 @@ export default function Portfolio() {
   }, [targetProductIds.join(","), deliveries, channel, status, sort]);
 
   const statuses = ["현재 납품중", "최근 3~6개월", "6개월+ 미출고"];
+
+  if (err) return <div className="s-wrap"><Card>{err}</Card></div>;
+  if (!data) return <div className="s-wrap"><Card>영업 데이터 불러오는 중…</Card></div>;
 
   return (
     <div className="s-wrap">
